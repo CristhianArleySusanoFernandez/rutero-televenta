@@ -1,0 +1,59 @@
+<!-- Marker id="vista-espera": el JS de index.html lo detecta para re-consultar cada 30s -->
+<div id="vista-espera" class="max-w-lg mx-auto py-12 space-y-6">
+
+    <div class="text-center space-y-2">
+        <p class="text-6xl">⏰</p>
+        <h2 class="text-2xl font-bold text-marca">
+            {% if total == 1 %}
+            Queda 1 cliente reagendado
+            {% else %}
+            Quedan {{ total }} clientes reagendados
+            {% endif %}
+        </h2>
+        {% set proximo = reagendados[0] %}
+        <p class="text-gray-600">
+            El próximo (<strong>{{ proximo.nombre }}</strong>)
+            {% if proximo.minutos_restantes %}
+            está listo en <strong>{{ proximo.minutos_restantes }} min</strong>
+            {% else %}
+            está por vencer
+            {% endif %}
+        </p>
+        <p class="text-xs text-gray-400">Esta pantalla se actualiza sola cada 30 segundos.</p>
+    </div>
+
+    <!-- Lista de reagendados pendientes -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100">
+        {% for r in reagendados %}
+        <div class="flex items-center justify-between px-4 py-3 gap-3">
+            <div class="min-w-0">
+                <p class="font-semibold text-gray-800 text-sm truncate">{{ r.nombre }}</p>
+                {% if r.hora %}
+                <p class="text-xs text-gray-400">Listo a las {{ r.hora }}</p>
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full">
+                    {% if r.minutos_restantes %}en {{ r.minutos_restantes }} min{% else %}ya casi{% endif %}
+                </span>
+                <!-- Sin onclick: delegación en #contenedor-enfocado (index.html) -->
+                <button
+                    data-accion="atender-ahora"
+                    data-rc-id="{{ r.rutero_cliente_id }}"
+                    class="bg-marca hover:bg-marca-hover text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                    📞 Atender ahora
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="text-center">
+        <button
+            onclick="volverALista()"
+            class="inline-flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-5 py-2.5 rounded-xl transition">
+            ← Volver a la lista
+        </button>
+    </div>
+
+</div>

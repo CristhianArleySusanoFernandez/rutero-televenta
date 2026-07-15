@@ -1,0 +1,13 @@
+{% if not clientes %}
+<div class="text-center py-20 text-gray-400">
+    <p class="text-5xl mb-4">📭</p>
+    <p class="text-lg font-medium">No hay clientes cargados para hoy</p>
+    <p class="text-sm mt-1">Sube el archivo Excel del rutero diario para comenzar</p>
+</div>
+{% else %}
+<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {% for cliente in clientes %}
+        {% include "partials/cliente_card.html" %}
+    {% endfor %}
+</div>
+{% endif %}

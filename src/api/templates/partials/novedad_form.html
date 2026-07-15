@@ -1,0 +1,33 @@
+<div class="novedad-form mt-2 bg-orange-50 border border-orange-200 rounded-lg p-3" id="novedad-form-{{ rutero_cliente_id }}">
+    <p class="text-sm font-semibold text-orange-800 mb-2">⚠ Registrar Novedad</p>
+
+    <select
+        id="tipo-{{ rutero_cliente_id }}"
+        class="w-full text-sm border border-orange-300 rounded-lg p-2 mb-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+    >
+        {% for tipo in tipos %}
+        <option value="{{ tipo }}">{{ tipo }}</option>
+        {% endfor %}
+    </select>
+
+    <textarea
+        id="obs-{{ rutero_cliente_id }}"
+        class="w-full text-sm border border-orange-300 rounded-lg p-2 mb-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+        rows="2"
+        placeholder="Observación (opcional)..."
+    ></textarea>
+
+    <div class="flex gap-2">
+        <button
+            id="btn-guardar-novedad-{{ rutero_cliente_id }}"
+            type="button"
+            class="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-1.5 rounded-lg transition disabled:opacity-50"
+            onclick="enviarNovedad('{{ rutero_cliente_id }}', '{{ cliente_id }}', this)"
+        >Guardar</button>
+        <button
+            type="button"
+            class="px-3 text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg"
+            onclick="cerrarFormNovedad('{{ rutero_cliente_id }}')"
+        >Cancelar</button>
+    </div>
+</div>

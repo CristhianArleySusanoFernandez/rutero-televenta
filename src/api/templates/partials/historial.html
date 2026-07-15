@@ -1,0 +1,18 @@
+{% if not novedades %}
+<div class="mt-2 text-xs text-gray-400 italic">Sin novedades registradas en semanas anteriores.</div>
+{% else %}
+<div class="mt-2 space-y-2">
+    <p class="text-xs font-semibold text-gray-600">📋 Historial de novedades:</p>
+    {% for n in novedades %}
+    <div class="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs">
+        <div class="flex justify-between items-start">
+            <span class="font-medium text-gray-700">{{ n.tipo.value }}</span>
+            <span class="text-gray-400">{{ n.fecha }}</span>
+        </div>
+        {% if n.observacion %}
+        <p class="text-gray-500 mt-0.5">{{ n.observacion }}</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}

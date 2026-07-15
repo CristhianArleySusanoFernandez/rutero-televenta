@@ -1,0 +1,59 @@
+<div id="notas-{{ cliente_id }}" class="space-y-2">
+
+    {% if notas %}
+    <div class="bg-yellow-50 border border-yellow-300 rounded-lg p-3 space-y-1">
+        <p class="text-xs font-bold text-yellow-800 uppercase tracking-wide mb-1">
+            📌 Notas permanentes del cliente
+        </p>
+        {% for n in notas %}
+        <div class="flex items-start justify-between gap-2 group">
+            <div class="flex-1">
+                <p class="text-xs text-yellow-900">{{ n.nota }}</p>
+                {% if n.autor or n.created_at %}
+                <p class="text-[10px] text-yellow-600 mt-0.5">
+                    {% if n.autor %}{{ n.autor }}{% endif %}
+                    {% if n.created_at %} · {{ n.created_at[:10] }}{% endif %}
+                </p>
+                {% endif %}
+            </div>
+            <button
+                class="opacity-0 group-hover:opacity-100 text-yellow-400 hover:text-red-500 transition text-xs shrink-0"
+                title="Eliminar nota"
+                onclick="eliminarNota('{{ n.id }}', '{{ cliente_id }}')"
+            >✕</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Formulario para agregar nota nueva -->
+    <div id="form-nota-{{ cliente_id }}" class="hidden">
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-1">
+            <textarea
+                id="texto-nota-{{ cliente_id }}"
+                rows="2"
+                placeholder="Ej: solo ofrecer galletas, no llamar antes de las 10am..."
+                class="w-full text-xs border border-yellow-300 rounded p-2 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            ></textarea>
+            <div class="flex gap-2 mt-2">
+                <button
+                    class="flex-1 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-semibold text-xs py-1.5 rounded-lg transition"
+                    onclick="guardarNota('{{ cliente_id }}')"
+                >Guardar nota</button>
+                <button
+                    class="text-xs text-gray-400 hover:text-gray-600 px-2"
+                    onclick="document.getElementById('form-nota-{{ cliente_id }}').classList.add('hidden')"
+                >Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <button
+        class="text-xs text-yellow-700 hover:text-yellow-900 font-medium underline"
+        onclick="document.getElementById('form-nota-{{ cliente_id }}').classList.toggle('hidden')"
+    >+ Agregar nota permanente</button>
+
+</div>
+<!-- guardarNota/eliminarNota viven en index.html (script global).
+     Los partials NO definen funciones: un <script> aquí se re-ejecutaría
+     en cada swap y ya causó bugs de colisión (caso enviarNovedad). -->

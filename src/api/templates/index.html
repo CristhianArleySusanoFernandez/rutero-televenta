@@ -1,0 +1,556 @@
+{% extends "base.html" %}
+
+{% block title %}Rutero del día — Distribuciones Santiago De Tunja{% endblock %}
+
+{% block fecha %}{{ hoy.strftime('%A %d de %B de %Y') | capitalize }}{% endblock %}
+
+{% block content %}
+
+<!-- Stats Bar -->
+<div id="stats-bar">
+    {% include "partials/stats_bar.html" %}
+</div>
+
+<!-- Barra de modo: Iniciar / Pausar + botón volver -->
+<div id="barra-modo" class="flex items-center gap-3 mb-4 flex-wrap">
+    <button id="btn-iniciar"
+        onclick="iniciarModo()"
+        class="inline-flex items-center gap-2 bg-marca hover:bg-marca-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm transition">
+        ▶ Iniciar cola
+    </button>
+    <button id="btn-pausar"
+        onclick="pausarModo()"
+        class="hidden inline-flex items-center gap-2 bg-acento hover:opacity-90 text-marca font-bold px-5 py-2.5 rounded-xl shadow-sm transition">
+        ⏸ Pausar
+    </button>
+    <button id="btn-volver"
+        onclick="volverALista()"
+        class="hidden inline-flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-4 py-2.5 rounded-xl transition">
+        ← Volver a la lista
+    </button>
+    <span id="badge-modo" class="hidden px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+        🟢 Modo llamando
+    </span>
+    <span id="badge-telefono" class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-500 ml-auto">
+        📱 Consultando teléfono...
+    </span>
+</div>
+
+<!-- Toolbar: cargar rutero + filtros + exportar (se oculta en modo llamando) -->
+<div id="toolbar-lista" class="flex flex-wrap items-center gap-3 mb-6">
+
+    <!-- Subir Excel -->
+    <label class="cursor-pointer">
+        <span class="inline-flex items-center gap-2 bg-marca hover:bg-marca-hover text-white font-semibold px-4 py-2 rounded-lg shadow-sm transition">
+            📂 Cargar Rutero
+        </span>
+        <input
+            type="file"
+            accept=".xlsx"
+            name="archivo"
+            class="hidden"
+            id="file-input"
+        >
+    </label>
+
+    <span id="cargando" class="htmx-indicator text-gray-500 text-sm">⏳ Procesando...</span>
+
+    <!-- Selector de fecha del rutero -->
+    <div class="flex items-center gap-2 text-sm text-gray-600">
+        <label for="selector-fecha" class="font-medium whitespace-nowrap">📅 Fecha:</label>
+        <input
+            type="date"
+            id="selector-fecha"
+            name="fecha"
+            value="{{ hoy.isoformat() }}"
+            onchange="cambiarFecha(this.value)"
+            class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-cian"
+        >
+    </div>
+
+    <!-- Filtros -->
+    <div class="flex gap-2 ml-auto flex-wrap">
+        {% set filtros = [
+            ('todos',       '📋 Todos',         'bg-gray-200 text-gray-800'),
+            ('pendiente',   '🕐 Pendientes',     'bg-yellow-100 text-yellow-800'),
+            ('contesto',    '✅ Contestaron',    'bg-green-100 text-green-800'),
+            ('no_contesto', '❌ No contestaron', 'bg-red-100 text-red-800'),
+            ('novedad',     '⚠️ Novedad',        'bg-orange-100 text-orange-800'),
+        ] %}
+        {% for valor, etiqueta, color in filtros %}
+        <button
+            class="px-3 py-1.5 rounded-full text-sm font-medium transition {{ color }} {% if filtro == valor %}ring-2 ring-offset-1 ring-cian{% endif %}"
+            hx-get="/rutero/hoy?filtro={{ valor }}"
+            hx-include="#selector-fecha"
+            hx-target="#lista-clientes"
+            hx-swap="innerHTML"
+            hx-push-url="true"
+        >
+            {{ etiqueta }}
+            {% if valor == 'todos' %}({{ stats.total }})
+            {% elif valor == 'pendiente' %}({{ stats.pendiente }})
+            {% elif valor == 'contesto' %}({{ stats.contesto }})
+            {% elif valor == 'no_contesto' %}({{ stats.no_contesto }})
+            {% elif valor == 'novedad' %}({{ stats.novedad }})
+            {% endif %}
+        </button>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Vista enfocada (modo llamando) — oculta inicialmente -->
+<div id="contenedor-enfocado" class="hidden mb-8">
+    <!-- Se llena dinámicamente con el partial vista_enfocada.html -->
+</div>
+
+<!-- Lista de clientes (modo pausa) -->
+<div id="lista-clientes">
+    {% include "partials/lista_clientes.html" %}
+</div>
+
+<!-- Botón exportar -->
+<div id="footer-lista" class="mt-8 flex justify-end">
+    <a
+        id="link-exportar"
+        href="/reportes/exportar?fecha={{ hoy.isoformat() }}"
+        class="inline-flex items-center gap-2 bg-marca hover:bg-marca-hover text-white font-semibold px-5 py-2.5 rounded-lg shadow-sm transition"
+    >
+        📊 Exportar reporte Excel
+    </a>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ──────────────────────────────────────────────
+// Estado global del modo cola
+// ──────────────────────────────────────────────
+let modoCola = 'pausa';      // 'pausa' | 'llamando'
+let pausarDespues = false;   // pausar al terminar el cliente actual
+let esperaTimer = null;      // setTimeout del refresco cuando hay reagendados en espera
+
+// ──────────────────────────────────────────────
+// Iniciar modo llamando
+// ──────────────────────────────────────────────
+async function iniciarModo() {
+    modoCola = 'llamando';
+    pausarDespues = false;
+
+    // UI: mostrar/ocultar elementos
+    document.getElementById('btn-iniciar').classList.add('hidden');
+    document.getElementById('btn-pausar').classList.remove('hidden');
+    document.getElementById('btn-volver').classList.remove('hidden');
+    document.getElementById('badge-modo').classList.remove('hidden');
+    document.getElementById('toolbar-lista').classList.add('hidden');
+    document.getElementById('lista-clientes').classList.add('hidden');
+    document.getElementById('footer-lista').classList.add('hidden');
+    document.getElementById('contenedor-enfocado').classList.remove('hidden');
+
+    await cargarSiguienteCliente();
+}
+
+// ──────────────────────────────────────────────
+// Pausar (after current client)
+// ──────────────────────────────────────────────
+function pausarModo() {
+    pausarDespues = true;
+    cancelarEsperaReagendados();
+
+    document.getElementById('btn-pausar').classList.add('hidden');
+    document.getElementById('btn-iniciar').classList.remove('hidden');
+    document.getElementById('badge-modo').classList.add('hidden');
+
+    // Si no hay cliente activo en pantalla, volver a lista ya
+    const enfocado = document.getElementById('vista-enfocada');
+    if (!enfocado) {
+        volverALista();
+    }
+}
+
+// ──────────────────────────────────────────────
+// Volver a la lista completa
+// ──────────────────────────────────────────────
+function volverALista() {
+    modoCola = 'pausa';
+    pausarDespues = false;
+    cancelarEsperaReagendados();
+
+    document.getElementById('btn-iniciar').classList.remove('hidden');
+    document.getElementById('btn-pausar').classList.add('hidden');
+    document.getElementById('btn-volver').classList.add('hidden');
+    document.getElementById('badge-modo').classList.add('hidden');
+    document.getElementById('toolbar-lista').classList.remove('hidden');
+    document.getElementById('lista-clientes').classList.remove('hidden');
+    document.getElementById('footer-lista').classList.remove('hidden');
+    document.getElementById('contenedor-enfocado').classList.add('hidden');
+    document.getElementById('contenedor-enfocado').innerHTML = '';
+}
+
+// ──────────────────────────────────────────────
+// Fecha activa (sincronizada con el selector)
+// ──────────────────────────────────────────────
+function fechaActiva() {
+    return document.getElementById('selector-fecha').value;
+}
+
+function cambiarFecha(valor) {
+    // Navegar a la misma página con la nueva fecha (recarga completa para actualizar stats)
+    window.location.href = '/?fecha=' + valor;
+}
+
+// ──────────────────────────────────────────────
+// Cargar el siguiente cliente en la vista enfocada
+// ──────────────────────────────────────────────
+// rcId opcional: si viene, pide ese cliente específico ("Atender ahora"
+// desde la pantalla de espera); si no, el siguiente de la cola.
+async function cargarSiguienteCliente(rcId) {
+    cancelarEsperaReagendados();
+    const contenedor = document.getElementById('contenedor-enfocado');
+    contenedor.innerHTML = '<div class="text-center py-12 text-gray-400">⏳ Cargando...</div>';
+
+    let url = '/cola/vista-enfocada?fecha=' + fechaActiva();
+    if (typeof rcId === 'string' && rcId) url += '&rc=' + rcId;
+
+    const r = await fetch(url);
+    const html = await r.text();
+    contenedor.innerHTML = html;
+    // innerHTML no activa los atributos hx-* del contenido nuevo
+    // (botones de notas permanentes, etc.) — procesar SIEMPRE tras cada carga.
+    htmx.process(contenedor);
+
+    // Si el servidor devolvió la pantalla de espera (hay reagendados sin vencer),
+    // re-consultar en 30s: cuando uno venza, aparecerá solo.
+    if (document.getElementById('vista-espera') && modoCola === 'llamando' && !pausarDespues) {
+        esperaTimer = setTimeout(cargarSiguienteCliente, 30000);
+    }
+}
+
+function cancelarEsperaReagendados() {
+    if (esperaTimer) {
+        clearTimeout(esperaTimer);
+        esperaTimer = null;
+    }
+}
+
+// ──────────────────────────────────────────────
+// Registrar resultado desde vista enfocada
+// ──────────────────────────────────────────────
+async function registrarResultado(rcId, estado) {
+    if (estado === 'no_contesto') {
+        // Lógica de reintentos: 1er fallo → reintento_pendiente +4 pos,
+        // 2do fallo → no_contesto definitivo
+        const r = await fetch('/cola/no-contesto', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rutero_cliente_id: rcId }),
+        });
+        const data = await r.json();
+        if (data.estado === 'reintento_pendiente') {
+            // Primer fallo: mostrar aviso brevemente y avanzar
+            mostrarAvisoReintento();
+        }
+    } else {
+        await fetch('/llamadas/' + rcId + '/estado', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado: estado }),
+        });
+    }
+    despuesDeResultado();
+}
+
+function mostrarAvisoReintento() {
+    const contenedor = document.getElementById('contenedor-enfocado');
+    const aviso = document.createElement('div');
+    aviso.className = 'max-w-lg mx-auto bg-orange-50 border border-orange-300 rounded-xl px-4 py-3 text-sm text-orange-800 font-medium text-center';
+    aviso.textContent = '↩ Primer intento fallido — el cliente vuelve a la cola 4 posiciones más adelante';
+    contenedor.prepend(aviso);
+    setTimeout(() => aviso.remove(), 4000);
+}
+
+// ──────────────────────────────────────────────
+// Lógica después de registrar cualquier resultado:
+// avanzar al siguiente cliente INMEDIATAMENTE (sin countdown —
+// el asesor confirma cada llamada pulsando "Llamar")
+// ──────────────────────────────────────────────
+function despuesDeResultado() {
+    if (modoCola === 'pausa' || pausarDespues) {
+        // En pausa: no avanzar, volver a lista
+        volverALista();
+        return;
+    }
+    cargarSiguienteCliente();
+}
+
+// ──────────────────────────────────────────────
+// Llamar al cliente actual por el teléfono (WebSocket)
+// Delegación de eventos: el listener vive en #contenedor-enfocado
+// (elemento permanente), así el botón funciona tras cualquier swap.
+// ──────────────────────────────────────────────
+document.getElementById('contenedor-enfocado').addEventListener('click', function(e) {
+    const btnLlamar = e.target.closest('[data-accion="llamar-cliente"]');
+    if (btnLlamar) { llamarCliente(btnLlamar.dataset.rcId, btnLlamar); return; }
+
+    // "Atender ahora" desde la pantalla de espera: carga ese cliente específico.
+    // cargarSiguienteCliente ya cancela el refresco de 30s, y como la vista
+    // devuelta no trae #vista-espera, el timer no se re-programa.
+    const btnAtender = e.target.closest('[data-accion="atender-ahora"]');
+    if (btnAtender) cargarSiguienteCliente(btnAtender.dataset.rcId);
+});
+
+async function llamarCliente(rcId, btn) {
+    if (btn) { btn.disabled = true; btn.textContent = '📞 Marcando...'; }
+    mostrarAvisoLlamada('info', '📤 Enviando orden al teléfono...');
+
+    try {
+        const r = await fetch('/cola/llamar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rutero_cliente_id: rcId }),
+        });
+        const data = await r.json();
+
+        if (r.ok) {
+            mostrarAvisoLlamada('ok',
+                '📞 Marcando <strong>' + data.numero + '</strong> en el teléfono. ' +
+                'Cuando termine, marca el resultado (Contestó / No contestó).');
+        } else if (r.status === 409) {
+            // Teléfono ocupado o hay que elegir cuál usar
+            mostrarAvisoLlamada('warn', '⏳ ' + (data.error || 'El teléfono está ocupado.'));
+        } else {
+            // 400 (número inválido) o 404 (sin teléfono conectado)
+            mostrarAvisoLlamada('error', '❌ ' + (data.error || ('Error ' + r.status)));
+        }
+    } catch (err) {
+        mostrarAvisoLlamada('error', '❌ No se pudo contactar al servidor: ' + err.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '📞 Llamar'; }
+    }
+    actualizarBadgeTelefono();
+}
+
+function mostrarAvisoLlamada(nivel, htmlTexto) {
+    const slot = document.getElementById('slot-aviso-llamada');
+    if (!slot) return;
+    const estilos = {
+        info:  'bg-cian-suave border-cian text-marca',
+        ok:    'bg-green-50 border-green-300 text-green-800',
+        warn:  'bg-orange-50 border-orange-300 text-orange-800',
+        error: 'bg-red-50 border-red-300 text-red-800',
+    };
+    slot.innerHTML =
+        '<div class="border rounded-lg px-3 py-2 mt-2 text-sm font-medium ' + estilos[nivel] + '">' +
+        htmlTexto + '</div>';
+}
+
+// ──────────────────────────────────────────────
+// Indicador de estado del teléfono (badge, polling cada 10s)
+// ──────────────────────────────────────────────
+const BADGE_BASE = 'px-3 py-1 rounded-full text-sm font-medium ml-auto ';
+
+async function actualizarBadgeTelefono() {
+    const badge = document.getElementById('badge-telefono');
+    if (!badge) return;
+    try {
+        const r = await fetch('/telefono/estado');
+        const sesiones = await r.json();
+
+        if (!sesiones.length) {
+            badge.className = BADGE_BASE + 'bg-red-100 text-red-800';
+            badge.textContent = '📵 Sin teléfono conectado';
+        } else if (sesiones.length === 1) {
+            const s = sesiones[0];
+            const bat = (s.bateria != null) ? ' · 🔋' + s.bateria + '%' : '';
+            if (s.en_llamada) {
+                badge.className = BADGE_BASE + 'bg-orange-100 text-orange-800';
+                badge.textContent = '📞 ' + s.telefono_id + ' en llamada' + bat;
+            } else if (s.disponible) {
+                badge.className = BADGE_BASE + 'bg-green-100 text-green-800';
+                badge.textContent = '📱 ' + s.telefono_id + ' listo' + bat;
+            } else {
+                badge.className = BADGE_BASE + 'bg-yellow-100 text-yellow-800';
+                badge.textContent = '📱 ' + s.telefono_id + ' conectado (no disponible)' + bat;
+            }
+        } else {
+            badge.className = BADGE_BASE + 'bg-yellow-100 text-yellow-800';
+            badge.textContent = '📱 ' + sesiones.length + ' teléfonos conectados';
+        }
+    } catch (err) {
+        badge.className = BADGE_BASE + 'bg-red-100 text-red-800';
+        badge.textContent = '📵 Servidor sin respuesta';
+    }
+}
+
+actualizarBadgeTelefono();
+setInterval(actualizarBadgeTelefono, 10000);
+
+// ──────────────────────────────────────────────
+// Saltar cliente (sin reintento, registra novedad automática)
+// ──────────────────────────────────────────────
+async function saltarCliente(rcId, cliId, motivo) {
+    await fetch('/cola/saltar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rutero_cliente_id: rcId, cliente_id: cliId, motivo: motivo }),
+    });
+    despuesDeResultado();
+}
+
+// ──────────────────────────────────────────────
+// Abrir formulario de novedad (ambos modos)
+// ──────────────────────────────────────────────
+async function abrirFormNovedadEnfocado(rcId, cliId) {
+    const r = await fetch('/llamadas/' + rcId + '/novedad-form?cliente_id=' + cliId);
+    const html = await r.text();
+    document.getElementById('slot-novedad-enfocado').innerHTML = html;
+}
+
+// ──────────────────────────────────────────────
+// enviarNovedad — función única, detecta el modo activo.
+// El partial novedad_form.html NO tiene su propio <script>,
+// por lo que siempre llega aquí.
+// ──────────────────────────────────────────────
+async function enviarNovedad(rcId, cliId, btnEl) {
+    // Prevenir doble envío
+    if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Guardando...'; }
+
+    const tipo = document.getElementById('tipo-' + rcId).value;
+    const obs  = document.getElementById('obs-'  + rcId).value;
+
+    const html = await fetch('/llamadas/' + rcId + '/novedad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cliente_id: cliId, tipo: tipo, observacion: obs || null }),
+    }).then(r => r.text());
+
+    if (modoCola === 'llamando') {
+        // Modo cola: mostrar confirmación en el slot de la vista enfocada, sin avanzar
+        const slot = document.getElementById('slot-novedad-enfocado');
+        slot.innerHTML = `
+            <div class="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm text-green-700">
+                <span>Novedad registrada</span>
+                <button onclick="document.getElementById('slot-novedad-enfocado').innerHTML=''"
+                    class="text-green-400 hover:text-green-700 ml-2 font-bold">x</button>
+            </div>`;
+    } else {
+        // Modo lista: el servidor devuelve la tarjeta actualizada, hacer swap
+        const card = document.getElementById('card-' + rcId);
+        if (card) {
+            card.outerHTML = html;
+            htmx.process(document.getElementById('card-' + rcId));
+        }
+    }
+}
+
+// ──────────────────────────────────────────────
+// Notas permanentes (partial notas_cliente.html, ambos modos)
+// ──────────────────────────────────────────────
+function guardarNota(cliId) {
+    const texto = document.getElementById('texto-nota-' + cliId).value.trim();
+    if (!texto) return;
+    fetch('/notas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cliente_id: cliId, nota: texto }),
+    })
+    .then(r => r.text())
+    .then(html => {
+        document.getElementById('notas-' + cliId).outerHTML = html;
+    });
+}
+
+function eliminarNota(notaId, cliId) {
+    if (!confirm('¿Eliminar esta nota permanente?')) return;
+    fetch('/notas/' + notaId + '?cliente_id=' + cliId, { method: 'DELETE' })
+    .then(r => r.text())
+    .then(html => {
+        document.getElementById('notas-' + cliId).outerHTML = html;
+    });
+}
+
+// Cerrar formulario de novedad (funciona en ambos modos)
+function cerrarFormNovedad(rcId) {
+    // Modo cola
+    const slotCola = document.getElementById('slot-novedad-enfocado');
+    if (slotCola) slotCola.innerHTML = '';
+    // Modo lista
+    const slotLista = document.getElementById('novedad-slot-' + rcId);
+    if (slotLista) slotLista.innerHTML = '';
+}
+
+// ──────────────────────────────────────────────
+// Historial en vista enfocada — toggle, NO dispara countdown
+// ──────────────────────────────────────────────
+async function toggleHistorialEnfocado(rcId, cliId) {
+    const slot = document.getElementById('slot-historial-enfocado');
+    const btn  = document.getElementById('btn-hist-enf-' + rcId);
+    if (slot.innerHTML.trim()) {
+        slot.innerHTML = '';
+        btn.textContent = '📋 Historial';
+        return;
+    }
+    btn.textContent = '⏳ Cargando...';
+    const r = await fetch('/llamadas/' + cliId + '/historial');
+    slot.innerHTML = await r.text();
+    btn.textContent = '🔼 Ocultar';
+}
+
+// ──────────────────────────────────────────────
+// Reagendar (placeholder — implementado en suborden 4)
+// ──────────────────────────────────────────────
+function abrirReagendar(rcId) {
+    document.getElementById('slot-reagendar-enfocado').innerHTML = `
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-2 space-y-3">
+            <p class="text-sm font-semibold text-amber-800">⏰ ¿Cuándo volver a llamar?</p>
+            <div class="flex gap-2 flex-wrap">
+                <button onclick="confirmarReagendar('${rcId}', 1)"   class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-medium rounded-lg text-xs transition">1 min (test)</button>
+                <button onclick="confirmarReagendar('${rcId}', 10)"  class="px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium rounded-lg text-sm transition">10 min</button>
+                <button onclick="confirmarReagendar('${rcId}', 30)"  class="px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium rounded-lg text-sm transition">30 min</button>
+                <button onclick="confirmarReagendar('${rcId}', 60)"  class="px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium rounded-lg text-sm transition">1 hora</button>
+            </div>
+            <div class="flex gap-2 items-center">
+                <input id="min-custom" type="number" min="1" placeholder="Minutos personalizados"
+                    class="flex-1 border border-amber-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cian">
+                <button onclick="confirmarReagendar('${rcId}', parseInt(document.getElementById('min-custom').value))"
+                    class="bg-marca hover:bg-marca-hover text-white font-semibold px-4 py-2 rounded-lg text-sm transition">
+                    Confirmar
+                </button>
+            </div>
+            <button onclick="document.getElementById('slot-reagendar-enfocado').innerHTML=''"
+                class="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
+        </div>`;
+}
+
+async function confirmarReagendar(rcId, minutos) {
+    if (!minutos || minutos < 1) return;
+    await fetch('/cola/reagendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rutero_cliente_id: rcId, minutos: minutos }),
+    });
+    document.getElementById('slot-reagendar-enfocado').innerHTML = '';
+    despuesDeResultado();
+}
+
+// ──────────────────────────────────────────────
+// Carga del rutero (lista)
+// ──────────────────────────────────────────────
+document.getElementById('file-input').addEventListener('change', function() {
+    if (!this.files[0]) return;
+    const fecha = fechaActiva();
+    const formData = new FormData();
+    formData.append('archivo', this.files[0]);
+    if (fecha) formData.append('fecha', fecha);
+    document.getElementById('cargando').style.opacity = '1';
+    fetch('/rutero/cargar', { method: 'POST', body: formData })
+        .then(r => {
+            if (!r.ok) return r.json().then(e => { throw new Error(e.detail); });
+            return r.text();
+        })
+        .then(() => { window.location.href = '/?fecha=' + fecha; })
+        .catch(err => alert('Error al cargar el rutero: ' + err.message))
+        .finally(() => { document.getElementById('cargando').style.opacity = '0'; this.value = ''; });
+});
+</script>
+{% endblock %}

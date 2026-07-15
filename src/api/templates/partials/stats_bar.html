@@ -1,0 +1,33 @@
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-3">
+        <div class="text-center">
+            <p class="text-2xl font-bold text-marca">{{ stats.total }}</p>
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Total</p>
+        </div>
+        <div class="text-center">
+            <p class="text-2xl font-bold text-green-600">{{ stats.contesto }}</p>
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Contestaron</p>
+        </div>
+        <div class="text-center">
+            <p class="text-2xl font-bold text-red-500">{{ stats.no_contesto }}</p>
+            <p class="text-xs text-gray-500 uppercase tracking-wide">No contestaron</p>
+        </div>
+        <div class="text-center">
+            <p class="text-2xl font-bold text-orange-500">{{ stats.novedad }}</p>
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Novedades</p>
+        </div>
+        <div class="text-center">
+            <p class="text-2xl font-bold text-yellow-600">{{ stats.pendiente }}</p>
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Pendientes</p>
+        </div>
+    </div>
+
+    <!-- Barra de progreso -->
+    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+        <div
+            class="h-3 rounded-full transition-all duration-500 {% if stats.progreso == 100 %}bg-green-500{% elif stats.progreso >= 50 %}bg-cian{% else %}bg-marca{% endif %}"
+            style="width: {{ stats.progreso }}%"
+        ></div>
+    </div>
+    <p class="text-right text-xs text-gray-400 mt-1">{{ stats.progreso }}% completado</p>
+</div>
