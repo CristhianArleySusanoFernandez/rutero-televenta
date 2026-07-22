@@ -185,6 +185,35 @@ function volverALista() {
     document.getElementById('footer-lista').classList.remove('hidden');
     document.getElementById('contenedor-enfocado').classList.add('hidden');
     document.getElementById('contenedor-enfocado').innerHTML = '';
+
+    // Datos frescos al volver: la stats bar y las tarjetas quedaron con
+    // los valores de cuando se entró al modo cola.
+    refrescarStats();
+    refrescarLista();
+}
+
+// ──────────────────────────────────────────────
+// Refrescar stats y lista con datos actuales del servidor.
+// La stats_bar y las tarjetas se renderizan al cargar la página; en modo
+// cola los resultados se registran sin tocar ese DOM, así que al salir
+// del modo (o al avanzar de cliente) hay que repintarlas.
+// ──────────────────────────────────────────────
+async function refrescarStats() {
+    try {
+        const r = await fetch('/rutero/stats?fecha=' + fechaActiva());
+        if (r.ok) document.getElementById('stats-bar').innerHTML = await r.text();
+    } catch (err) { /* sin red: se queda la versión anterior */ }
+}
+
+function refrescarLista() {
+    // Respetar el filtro activo (viene en la URL por hx-push-url)
+    const filtro = new URLSearchParams(location.search).get('filtro') || 'todos';
+    // htmx.ajax (y no fetch+innerHTML): las tarjetas traen <script> y hx-*
+    // que solo se activan con un swap real de HTMX, igual que los filtros.
+    htmx.ajax('GET', '/rutero/hoy?filtro=' + filtro + '&fecha=' + fechaActiva(), {
+        target: '#lista-clientes',
+        swap: 'innerHTML',
+    });
 }
 
 // ──────────────────────────────────────────────
@@ -198,6 +227,13 @@ function cambiarFecha(valor) {
     // Navegar a la misma página con la nueva fecha (recarga completa para actualizar stats)
     window.location.href = '/?fecha=' + valor;
 }
+
+// El link de exportar se genera en el servidor con la fecha de carga de la
+// página; si luego se cambia el selector sin recargar (no aplica hoy porque
+// cambiarFecha() recarga, pero se deja robusto ante futuros cambios).
+document.getElementById('selector-fecha').addEventListener('change', function() {
+    document.getElementById('link-exportar').href = '/reportes/exportar?fecha=' + this.value;
+});
 
 // ──────────────────────────────────────────────
 // Cargar el siguiente cliente en la vista enfocada
@@ -218,6 +254,10 @@ async function cargarSiguienteCliente(rcId) {
     // innerHTML no activa los atributos hx-* del contenido nuevo
     // (botones de notas permanentes, etc.) — procesar SIEMPRE tras cada carga.
     htmx.process(contenedor);
+
+    // La stats bar sigue visible en modo cola: mantenerla al día en cada
+    // avance (cubre también la pantalla 🎉 de terminado).
+    refrescarStats();
 
     // Si el servidor devolvió la pantalla de espera (hay reagendados sin vencer),
     // re-consultar en 30s: cuando uno venza, aparecerá solo.
@@ -421,7 +461,7 @@ async function enviarNovedad(rcId, cliId, btnEl) {
     const html = await fetch('/llamadas/' + rcId + '/novedad', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cliente_id: cliId, tipo: tipo, observacion: obs || null }),
+        body: JSON.stringify({ cliente_id: cliId, tipo: tipo, observacion: obs || null, fecha: fechaActiva() }),
     }).then(r => r.text());
 
     if (modoCola === 'llamando') {

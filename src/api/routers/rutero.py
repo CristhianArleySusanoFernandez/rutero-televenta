@@ -65,6 +65,21 @@ async def rutero_hoy(
     )
 
 
+@router.get("/stats", response_class=HTMLResponse)
+async def stats_del_dia(
+    request: Request,
+    fecha: Optional[date] = None,
+    uc: ObtenerRuteroDia = Depends(get_obtener_rutero_dia),
+):
+    fecha_efectiva = fecha or date.today()
+    clientes = await uc.execute(fecha_efectiva)
+    return templates.TemplateResponse(
+        request,
+        "partials/stats_bar.html",
+        {"stats": _calcular_stats(clientes)},
+    )
+
+
 def _calcular_stats(clientes: list) -> dict:
     total = len(clientes)
     contesto = sum(1 for c in clientes if c["estado"] == "contesto")

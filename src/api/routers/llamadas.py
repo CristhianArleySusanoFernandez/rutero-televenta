@@ -27,6 +27,7 @@ class NovedadBody(BaseModel):
     cliente_id: str
     tipo: TipoNovedad
     observacion: str | None = None
+    fecha: date | None = None
 
 
 @router.patch("/{rutero_cliente_id}/estado", response_class=HTMLResponse)
@@ -62,7 +63,11 @@ async def registrar_novedad(
             cliente_id=body.cliente_id,
             tipo=body.tipo,
             observacion=body.observacion,
-            fecha=date.today(),
+            # Debe quedar con la fecha del rutero que se está trabajando, no la
+            # fecha calendario real — si no, un rutero de un día distinto al
+            # actual guarda la novedad bajo "hoy" y el reporte de ese día sale
+            # vacío aunque la novedad sí se haya registrado.
+            fecha=body.fecha or date.today(),
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
