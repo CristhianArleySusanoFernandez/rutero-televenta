@@ -12,13 +12,15 @@ class ExportarReporte:
         self._llamada_repo = llamada_repo
 
     async def execute(self, fecha: date) -> BytesIO:
-        novedades = await self._llamada_repo.get_novedades_del_dia(fecha)
+        # Solo los que requieren una decisión (novedad, saltado, no contestó
+        # tras 2 intentos) — los "Contestó" exitosos no aportan al reporte.
+        problematicos = await self._llamada_repo.get_problematicos_del_dia(fecha)
 
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = f"Novedades {fecha}"
+        ws.title = f"Pendientes {fecha}"
 
-        headers = ["Cliente", "Razón Social", "Teléfono", "Ciudad", "Tipo Novedad", "Observación", "Hora"]
+        headers = ["Cliente", "Razón Social", "Teléfono", "Estado", "Tipo Novedad", "Observación"]
         header_fill = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
         header_font = Font(color="FFFFFF", bold=True)
 
@@ -28,15 +30,13 @@ class ExportarReporte:
             cell.font = header_font
             cell.alignment = Alignment(horizontal="center")
 
-        for row_idx, n in enumerate(novedades, 2):
-            ws.cell(row=row_idx, column=1, value=n.get("cliente_nombre", ""))
+        for row_idx, n in enumerate(problematicos, 2):
+            ws.cell(row=row_idx, column=1, value=n.get("nombre", ""))
             ws.cell(row=row_idx, column=2, value=n.get("razon_social", ""))
             ws.cell(row=row_idx, column=3, value=n.get("telefono", ""))
-            ws.cell(row=row_idx, column=4, value=n.get("ciudad", ""))
-            ws.cell(row=row_idx, column=5, value=n.get("tipo", ""))
+            ws.cell(row=row_idx, column=4, value=n.get("estado_reporte", ""))
+            ws.cell(row=row_idx, column=5, value=n.get("tipo_novedad", ""))
             ws.cell(row=row_idx, column=6, value=n.get("observacion", ""))
-            created_at = n.get("created_at")
-            ws.cell(row=row_idx, column=7, value=str(created_at) if created_at else "")
 
         for col in ws.columns:
             max_len = max((len(str(c.value or "")) for c in col), default=10)

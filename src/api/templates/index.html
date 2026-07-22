@@ -432,7 +432,7 @@ async function saltarCliente(rcId, cliId, motivo) {
     await fetch('/cola/saltar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rutero_cliente_id: rcId, cliente_id: cliId, motivo: motivo }),
+        body: JSON.stringify({ rutero_cliente_id: rcId, cliente_id: cliId, motivo: motivo, fecha: fechaActiva() }),
     });
     despuesDeResultado();
 }
@@ -481,6 +481,9 @@ async function enviarNovedad(rcId, cliId, btnEl) {
             htmx.process(document.getElementById('card-' + rcId));
         }
     }
+    // El contador de Novedades cuenta por tabla novedades, no por estado;
+    // sin esto la barra de arriba se queda con el número de antes hasta un F5.
+    refrescarStats();
 }
 
 // ──────────────────────────────────────────────

@@ -41,6 +41,20 @@ class LlamadaRepository(ABC):
         ...
 
     @abstractmethod
+    async def get_problematicos_del_dia(self, fecha: date) -> List[dict]:
+        """
+        Clientes del rutero de esa fecha que requieren una decisión: tienen
+        al menos una novedad registrada (independientemente del estado —
+        un cliente puede haber contestado y aun así tener novedad), o
+        quedaron en 'no_contesto' sin novedad (2do intento fallido, sin
+        más contexto). Excluye 'contesto' sin novedad y estados en curso
+        (pendiente, reagendado, etc.).
+        Cada dict: {'nombre', 'razon_social', 'telefono', 'estado_reporte'
+        ('No contestó'|'Saltado'|'Novedad'), 'tipo_novedad', 'observacion'}.
+        """
+        ...
+
+    @abstractmethod
     async def get_historial_novedades(self, cliente_id: str) -> List[Novedad]:
         ...
 

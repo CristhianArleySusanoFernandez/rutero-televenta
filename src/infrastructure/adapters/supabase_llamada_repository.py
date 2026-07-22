@@ -215,6 +215,88 @@ class SupabaseLlamadaRepository(LlamadaRepository):
             )
         return rows
 
+    async def get_problematicos_del_dia(self, fecha: date) -> List[dict]:
+        rutero_dia = (
+            self._db.table("rutero_dias")
+            .select("id")
+            .eq("fecha", str(fecha))
+            .limit(1)
+            .execute()
+        )
+        if not rutero_dia.data:
+            return []
+        rutero_dia_id = rutero_dia.data[0]["id"]
+
+        # Se parte de TODOS los rutero_clientes del día (no solo estado
+        # no_contesto/novedad): un cliente puede haber contestado y aun así
+        # tener una novedad asociada, y debe salir en el reporte igual.
+        result = (
+            self._db.table("rutero_clientes")
+            .select(
+                "id, estado, "
+                "clientes(nombre, razon_social, telefono)"
+            )
+            .eq("rutero_dia_id", rutero_dia_id)
+            .execute()
+        )
+        rows = result.data or []
+        if not rows:
+            return []
+
+        rc_ids = [row["id"] for row in rows]
+        novedades_result = (
+            self._db.table("novedades")
+            .select("rutero_cliente_id, tipo, observacion, created_at")
+            .in_("rutero_cliente_id", rc_ids)
+            .order("created_at", desc=True)
+            .execute()
+        )
+        novedad_por_rc: dict[str, dict] = {}
+        for n in (novedades_result.data or []):
+            rc_id = n["rutero_cliente_id"]
+            if rc_id not in novedad_por_rc:
+                novedad_por_rc[rc_id] = n
+
+        registros = []
+        for row in rows:
+            cliente = row.get("clientes") or {}
+            novedad = novedad_por_rc.get(row["id"])
+            estado = row["estado"]
+
+            if novedad is not None:
+                # "Número equivocado / no existe" es el motivo por defecto
+                # que pone /cola/saltar — así se distingue un salto de una
+                # novedad real, sin depender del campo estado.
+                if novedad["tipo"] == TipoNovedad.NUMERO_EQUIVOCADO.value:
+                    estado_reporte = "Saltado"
+                else:
+                    estado_reporte = "Novedad"
+                tipo_novedad = novedad["tipo"]
+                observacion = novedad.get("observacion") or ""
+            elif estado == EstadoLlamada.NO_CONTESTO.value:
+                estado_reporte = "No contestó"
+                tipo_novedad = ""
+                observacion = "2 intentos sin respuesta"
+            else:
+                # Contestó sin novedad, pendiente, reagendado, etc.: no requiere acción.
+                continue
+
+            registros.append(
+                {
+                    "nombre": cliente.get("nombre"),
+                    "razon_social": cliente.get("razon_social"),
+                    "telefono": cliente.get("telefono"),
+                    "estado_reporte": estado_reporte,
+                    "tipo_novedad": tipo_novedad,
+                    "observacion": observacion,
+                }
+            )
+
+        # Agrupar por tipo de problema para que el jefe lea el reporte por bloques
+        orden = {"Novedad": 0, "Saltado": 1, "No contestó": 2}
+        registros.sort(key=lambda r: (orden[r["estado_reporte"]], r["nombre"] or ""))
+        return registros
+
     async def get_historial_novedades(self, cliente_id: str) -> List[Novedad]:
         result = (
             self._db.table("novedades")

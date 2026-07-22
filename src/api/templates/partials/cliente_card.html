@@ -10,10 +10,6 @@
     {% set badge_color = 'bg-red-100 text-red-700 border border-red-300' %}
     {% set card_border = 'border-l-4 border-l-red-400' %}
     {% set badge_label = '❌ No contestó' %}
-{% elif estado == 'novedad' %}
-    {% set badge_color = 'bg-orange-100 text-orange-700 border border-orange-300' %}
-    {% set card_border = 'border-l-4 border-l-orange-400' %}
-    {% set badge_label = '⚠️ Novedad' %}
 {% else %}
     {% set badge_color = 'bg-gray-100 text-gray-600 border border-gray-300' %}
     {% set card_border = 'border-l-4 border-l-gray-300' %}
@@ -30,9 +26,16 @@
             <p class="text-xs text-gray-500 truncate">{{ cliente.razon_social }}</p>
             {% endif %}
         </div>
-        <span class="text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap {{ badge_color }}">
-            {{ badge_label }}
-        </span>
+        <div class="flex flex-wrap gap-1 justify-end">
+            <span class="text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap {{ badge_color }}">
+                {{ badge_label }}
+            </span>
+            {% if cliente.ultima_novedad %}
+            <span class="text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap bg-orange-100 text-orange-700 border border-orange-300">
+                ⚠️ Novedad
+            </span>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Info del cliente -->
@@ -94,7 +97,7 @@
         >✗ No contestó</button>
 
         <button
-            class="flex-1 text-xs {{ 'bg-orange-300 font-bold' if estado == 'novedad' else 'bg-orange-50 hover:bg-orange-100' }} text-orange-700 font-medium py-1.5 px-2 rounded-lg transition"
+            class="flex-1 text-xs {{ 'bg-orange-300 font-bold' if cliente.ultima_novedad else 'bg-orange-50 hover:bg-orange-100' }} text-orange-700 font-medium py-1.5 px-2 rounded-lg transition"
             hx-get="/llamadas/{{ rc_id }}/novedad-form?cliente_id={{ cli_id }}"
             hx-target="#novedad-slot-{{ rc_id }}"
             hx-swap="innerHTML"
@@ -146,6 +149,7 @@ function actualizarEstado(rcId, estado) {
         const card = document.getElementById('card-' + rcId);
         card.outerHTML = html;
         htmx.process(document.getElementById('card-' + rcId));
+        refrescarStats();
     });
 }
 </script>

@@ -2,7 +2,6 @@ from datetime import date
 
 from src.domain.entities.novedad import Novedad
 from src.domain.ports.llamada_repository import LlamadaRepository
-from src.domain.value_objects.estado_llamada import EstadoLlamada
 from src.domain.value_objects.tipo_novedad import TipoNovedad
 
 
@@ -25,9 +24,8 @@ class RegistrarNovedad:
             tipo=tipo,
             observacion=observacion,
         )
-        novedad = await self._llamada_repo.crear_novedad(novedad)
-        # Sin esto, el estado del rutero_cliente se queda como estaba antes
-        # de la novedad (ej. 'pendiente') y el contador de NOVEDADES en las
-        # estadísticas nunca sube, aunque la novedad sí quedó guardada.
-        await self._llamada_repo.actualizar_estado(rutero_cliente_id, EstadoLlamada.NOVEDAD)
-        return novedad
+        # No se toca el estado del rutero_cliente: 'estado' es solo el
+        # resultado de la llamada (contestó/no contestó/etc). La novedad
+        # vive aparte en su propia tabla, así un cliente puede haber
+        # contestado Y tener una novedad al mismo tiempo.
+        return await self._llamada_repo.crear_novedad(novedad)

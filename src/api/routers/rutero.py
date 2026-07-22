@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse
 
 from src.api.dependencies import get_cargar_rutero, get_obtener_rutero_dia
 from src.api.templates_config import templates
+from src.application.use_cases.calcular_stats_rutero import calcular_stats, filtrar_clientes
 from src.application.use_cases.cargar_rutero import CargarRutero
 from src.application.use_cases.obtener_rutero_dia import ObtenerRuteroDia
 
@@ -32,7 +33,7 @@ async def cargar_rutero(
         raise HTTPException(status_code=422, detail=f"Error al procesar el archivo: {e}")
 
     clientes = await uc_dia.execute(fecha_efectiva)
-    stats = _calcular_stats(clientes)
+    stats = calcular_stats(clientes)
 
     is_htmx = request.headers.get("HX-Request")
     if is_htmx:
@@ -53,10 +54,8 @@ async def rutero_hoy(
 ):
     fecha_efectiva = fecha or date.today()
     clientes = await uc.execute(fecha_efectiva)
-    stats = _calcular_stats(clientes)
-
-    if filtro != "todos":
-        clientes = [c for c in clientes if c["estado"] == filtro]
+    stats = calcular_stats(clientes)
+    clientes = filtrar_clientes(clientes, filtro)
 
     return templates.TemplateResponse(
         request,
@@ -76,24 +75,5 @@ async def stats_del_dia(
     return templates.TemplateResponse(
         request,
         "partials/stats_bar.html",
-        {"stats": _calcular_stats(clientes)},
+        {"stats": calcular_stats(clientes)},
     )
-
-
-def _calcular_stats(clientes: list) -> dict:
-    total = len(clientes)
-    contesto = sum(1 for c in clientes if c["estado"] == "contesto")
-    no_contesto = sum(1 for c in clientes if c["estado"] == "no_contesto")
-    novedad = sum(1 for c in clientes if c["estado"] == "novedad")
-    pendiente = sum(1 for c in clientes if c["estado"] == "pendiente")
-    llamados = total - pendiente
-    progreso = round((llamados / total * 100) if total else 0)
-    return {
-        "total": total,
-        "contesto": contesto,
-        "no_contesto": no_contesto,
-        "novedad": novedad,
-        "pendiente": pendiente,
-        "llamados": llamados,
-        "progreso": progreso,
-    }

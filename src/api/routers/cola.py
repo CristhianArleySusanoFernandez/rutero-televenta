@@ -36,6 +36,7 @@ class SaltarBody(BaseModel):
     rutero_cliente_id: str
     cliente_id: str
     motivo: str = "Número equivocado / no existe"
+    fecha: Optional[date] = None
 
 
 class ReagendarBody(BaseModel):
@@ -126,7 +127,9 @@ async def saltar_cliente(
     novedad = Novedad(
         rutero_cliente_id=body.rutero_cliente_id,
         cliente_id=body.cliente_id,
-        fecha=date.today(),
+        # Debe quedar con la fecha del rutero que se está trabajando, no la
+        # fecha calendario real (mismo caso que /llamadas/.../novedad).
+        fecha=body.fecha or date.today(),
         tipo=tipo,
         observacion=body.motivo if tipo == TipoNovedad.OTRO else None,
     )
