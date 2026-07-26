@@ -1,7 +1,7 @@
+import uuid
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Optional
-import uuid
 
 from src.domain.value_objects.tipo_novedad import TipoNovedad
 

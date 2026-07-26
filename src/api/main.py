@@ -1,9 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
 from datetime import date
-
-logging.basicConfig(level=logging.INFO, format="%(levelname)s [%(name)s] %(message)s")
-
 from typing import Optional
 
 from fastapi import Depends, FastAPI, Request
@@ -15,6 +12,8 @@ from src.api.templates_config import templates
 from src.application.use_cases.calcular_stats_rutero import calcular_stats, filtrar_clientes
 from src.application.use_cases.obtener_rutero_dia import ObtenerRuteroDia
 from src.domain.value_objects.tipo_novedad import TipoNovedad
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s [%(name)s] %(message)s")
 
 
 @asynccontextmanager

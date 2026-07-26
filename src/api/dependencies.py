@@ -1,14 +1,15 @@
 from src.application.use_cases.cargar_rutero import CargarRutero
+from src.application.use_cases.exportar_reporte import ExportarReporte
+from src.application.use_cases.gestionar_notas_cliente import GestionarNotasCliente
 from src.application.use_cases.obtener_cliente_especifico import ObtenerClienteEspecifico
+from src.application.use_cases.obtener_datos_tarjeta_cliente import ObtenerDatosTarjetaCliente
+from src.application.use_cases.obtener_historial import ObtenerHistorial
+from src.application.use_cases.obtener_rutero_dia import ObtenerRuteroDia
 from src.application.use_cases.obtener_siguiente_cliente import ObtenerSiguienteCliente
 from src.application.use_cases.ordenar_llamada_cliente import OrdenarLlamadaCliente
 from src.application.use_cases.registrar_fin_llamada import RegistrarFinLlamada
-from src.application.use_cases.registrar_no_contesta import RegistrarNoContesta
-from src.application.use_cases.exportar_reporte import ExportarReporte
-from src.application.use_cases.gestionar_notas_cliente import GestionarNotasCliente
-from src.application.use_cases.obtener_historial import ObtenerHistorial
-from src.application.use_cases.obtener_rutero_dia import ObtenerRuteroDia
 from src.application.use_cases.registrar_llamada import RegistrarLlamada
+from src.application.use_cases.registrar_no_contesta import RegistrarNoContesta
 from src.application.use_cases.registrar_novedad import RegistrarNovedad
 from src.infrastructure.adapters.excel_rutero_parser import ExcelRuteroParser
 from src.infrastructure.adapters.supabase_cliente_repository import SupabaseClienteRepository
@@ -48,6 +49,10 @@ def get_obtener_rutero_dia() -> ObtenerRuteroDia:
 
 def get_obtener_historial() -> ObtenerHistorial:
     return ObtenerHistorial(get_llamada_repo())
+
+
+def get_obtener_datos_tarjeta_cliente() -> ObtenerDatosTarjetaCliente:
+    return ObtenerDatosTarjetaCliente(get_llamada_repo())
 
 
 def get_exportar_reporte() -> ExportarReporte:

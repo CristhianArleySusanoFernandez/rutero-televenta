@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from datetime import date, datetime
+from datetime import date
 from typing import List, Optional
 
 from src.domain.entities.llamada import Llamada
@@ -34,10 +34,6 @@ class LlamadaRepository(ABC):
 
     @abstractmethod
     async def crear_novedad(self, novedad: Novedad) -> Novedad:
-        ...
-
-    @abstractmethod
-    async def get_novedades_del_dia(self, fecha: date) -> List[dict]:
         ...
 
     @abstractmethod
@@ -80,6 +76,15 @@ class LlamadaRepository(ABC):
         self, rutero_cliente_id: str, minutos: int, fecha: date
     ) -> None:
         """Marca el cliente como reagendado y guarda reagendado_para = now + minutos."""
+        ...
+
+    @abstractmethod
+    async def get_datos_tarjeta_cliente(self, rutero_cliente_id: str) -> dict:
+        """
+        Datos de un rutero_cliente para repintar su tarjeta tras una acción
+        (cambio de estado, novedad registrada): cliente, última novedad y
+        notas permanentes.
+        """
         ...
 
     @abstractmethod

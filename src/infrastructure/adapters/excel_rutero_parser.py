@@ -21,7 +21,6 @@ COLUMN_MAP = {
     "Ciudad": "ciudad",
     "Dias Visita": "dias_visita",
     "Telefono": "telefono",
-    "NOVEDADS": "novedads",
 }
 
 

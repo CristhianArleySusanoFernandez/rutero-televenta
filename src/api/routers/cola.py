@@ -44,16 +44,6 @@ class ReagendarBody(BaseModel):
     minutos: int
 
 
-@router.get("/siguiente")
-async def siguiente_cliente(
-    fecha: Optional[date] = Query(None),
-    uc: ObtenerSiguienteCliente = Depends(get_obtener_siguiente_cliente),
-):
-    fecha_efectiva = fecha or date.today()
-    resultado = await uc.execute(fecha_efectiva)
-    return JSONResponse(resultado)
-
-
 @router.get("/vista-enfocada", response_class=HTMLResponse)
 async def vista_enfocada(
     request: Request,

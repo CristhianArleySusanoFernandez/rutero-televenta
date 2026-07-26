@@ -1,7 +1,7 @@
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
-import uuid
 
 from src.domain.value_objects.estado_llamada import EstadoLlamada
 

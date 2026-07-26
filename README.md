@@ -1,12 +1,23 @@
-# Rutero Televenta Nutresa
+# Rutero Televenta — Distribuciones Santiago De Tunja S.A.S.
 
-Aplicación web para gestión del rutero diario de televenta. Permite cargar el Excel con clientes del día, registrar el resultado de cada llamada y exportar el reporte de novedades.
+Aplicación web para gestión del rutero diario de televenta. Permite cargar el Excel con los clientes del día, marcar teléfonos desde el celular del asesor por WebSocket, registrar el resultado de cada llamada y las novedades, y exportar el reporte de casos que requieren seguimiento.
+
+## Funcionalidades principales
+
+- **Carga de rutero:** sube el Excel del día y genera la cola de clientes a llamar.
+- **Modo cola (vista enfocada):** presenta un cliente a la vez en el orden correcto (reagendados vencidos primero, luego pendientes/reintentos por posición) y ordena la llamada al teléfono del asesor por WebSocket.
+- **Resultado de la llamada:** Contestó / No contestó (con reintento automático tras el primer fallo) / Reagendar.
+- **Novedades:** un cliente puede tener una novedad (número equivocado, cambió de dueño, no quiere ser llamado, etc.) de forma independiente de si contestó o no — ambos hechos conviven y se muestran juntos en su tarjeta.
+- **Notas permanentes:** observaciones que persisten entre semanas, asociadas al cliente (no al rutero del día).
+- **Reporte Excel:** exporta únicamente los casos que requieren una decisión (novedades, saltados, no-contestó definitivo), no los contactos exitosos.
+- **Manual de la asesora:** ver `docs/MANUAL_ASESORA.md`.
 
 ## Stack
 
 - **Backend:** FastAPI + arquitectura hexagonal (ports & adapters)
 - **Frontend:** HTMX + Jinja2 + TailwindCSS (CDN)
 - **Base de datos:** Supabase (PostgreSQL)
+- **Telefonía:** WebSocket contra la app Android del asesor (ver `docs/contrato_websocket.md`)
 - **Lectura Excel:** pandas + openpyxl
 - **Exportación:** openpyxl
 
@@ -71,19 +82,25 @@ Abrir el navegador en: [http://localhost:8000](http://localhost:8000)
 
 ### Cargar rutero diario
 1. Click en **📂 Cargar Rutero**
-2. Seleccionar el archivo `.xlsx` del día (columnas requeridas: `Usuario`, `Asesor`, `Cod Cliente`, `Documento`, `Cliente`, `Razon social`, `Direccion`, `Barrio`, `Ciudad`, `Dias Visita`, `Telefono`, `NOVEDADS`)
+2. Seleccionar el archivo `.xlsx` del día (columnas requeridas: `Usuario`, `Asesor`, `Cod Cliente`, `Documento`, `Cliente`, `Razon social`, `Direccion`, `Barrio`, `Ciudad`, `Dias Visita`, `Telefono`)
 3. La lista se actualiza automáticamente sin recargar la página
+
+### Conectar el teléfono
+La app Android del asesor debe estar abierta y conectada por WebSocket al servidor (misma red WiFi). El estado de conexión se ve en el panel de teléfono; sin conexión no se puede ordenar marcar.
+
+### Modo cola
+Entra a la vista enfocada para que el sistema presente los clientes en orden, uno a la vez, y ordene la llamada al teléfono conectado.
 
 ### Registrar resultado de una llamada
 - **✓ Contestó** → marca la llamada como exitosa (verde)
-- **✗ No contestó** → marca sin respuesta (rojo)
-- **⚠ Novedad** → abre formulario inline para seleccionar tipo y agregar observación
+- **✗ No contestó** → primer fallo reintenta más adelante en la cola; segundo fallo queda definitivo (rojo)
+- **⚠ Novedad** → abre formulario inline para seleccionar tipo y agregar observación. Es independiente del resultado: un cliente puede haber contestado y además tener una novedad.
 
 ### Ver historial
 - Click en **📋 Historial** en cualquier tarjeta para ver novedades de semanas anteriores
 
 ### Exportar reporte
-- Click en **📊 Exportar reporte Excel** para descargar el Excel con todas las novedades del día
+- Click en **📊 Exportar reporte Excel** para descargar el Excel con los casos que requieren seguimiento: novedades, saltados y no-contestó definitivo. Los contactos exitosos sin novedad no aparecen.
 
 ## Estructura del proyecto
 
@@ -106,6 +123,9 @@ src/
 └── config.py             # Configuración con pydantic-settings
 database/
 └── schema.sql            # DDL para ejecutar en Supabase
+docs/
+├── contrato_websocket.md # Contrato de mensajes servidor ⇄ app Android
+└── MANUAL_ASESORA.md     # Manual de uso para la asesora de televenta
 ```
 
 ## Notas importantes
@@ -114,3 +134,4 @@ database/
 - Los casos de uso solo conocen el dominio: nunca importan de `infrastructure` ni de `api`
 - El upsert de clientes se hace por `cod_cliente`, evitando duplicados al recargar el rutero
 - HTMX reemplaza únicamente la tarjeta del cliente al actualizar su estado (sin recarga completa)
+- `estado` en `rutero_clientes` es solo el resultado de la llamada; una novedad se guarda aparte en la tabla `novedades` y no lo sobrescribe — un cliente puede haber contestado y tener una novedad al mismo tiempo

@@ -188,33 +188,6 @@ class SupabaseLlamadaRepository(LlamadaRepository):
         novedad.id = row["id"]
         return novedad
 
-    async def get_novedades_del_dia(self, fecha: date) -> List[dict]:
-        result = (
-            self._db.table("novedades")
-            .select(
-                "tipo, observacion, created_at, "
-                "clientes(nombre, razon_social, telefono, ciudad)"
-            )
-            .eq("fecha", str(fecha))
-            .order("created_at")
-            .execute()
-        )
-        rows = []
-        for row in (result.data or []):
-            cliente = row.get("clientes") or {}
-            rows.append(
-                {
-                    "tipo": row["tipo"],
-                    "observacion": row.get("observacion"),
-                    "created_at": row.get("created_at"),
-                    "cliente_nombre": cliente.get("nombre"),
-                    "razon_social": cliente.get("razon_social"),
-                    "telefono": cliente.get("telefono"),
-                    "ciudad": cliente.get("ciudad"),
-                }
-            )
-        return rows
-
     async def get_problematicos_del_dia(self, fecha: date) -> List[dict]:
         rutero_dia = (
             self._db.table("rutero_dias")
@@ -408,6 +381,58 @@ class SupabaseLlamadaRepository(LlamadaRepository):
             "viene_de_reagendamiento": viene_de_reagendamiento,
             "minutos_reagendado": minutos_reagendado,
             "reagendado_para": reagendado_para,
+        }
+
+    async def get_datos_tarjeta_cliente(self, rutero_cliente_id: str) -> dict:
+        result = (
+            self._db.table("rutero_clientes")
+            .select(
+                "id, estado, "
+                "clientes(id, cod_cliente, nombre, razon_social, direccion, barrio, ciudad, telefono, dias_visita)"
+            )
+            .eq("id", rutero_cliente_id)
+            .limit(1)
+            .execute()
+        )
+        row = result.data[0]
+        cliente = row.get("clientes") or {}
+        cli_id = cliente.get("id")
+
+        ultima_novedad = None
+        nov_result = (
+            self._db.table("novedades")
+            .select("tipo, observacion, created_at")
+            .eq("rutero_cliente_id", rutero_cliente_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if nov_result.data:
+            ultima_novedad = nov_result.data[0]
+
+        notas_result = (
+            self._db.table("notas_cliente")
+            .select("*")
+            .eq("cliente_id", cli_id)
+            .order("created_at", desc=False)
+            .execute()
+        ) if cli_id else None
+
+        return {
+            "rutero_cliente_id": row["id"],
+            "estado": row["estado"],
+            "contador_intentos": row.get("contador_intentos", 0),
+            "cliente_id": cli_id,
+            "cod_cliente": cliente.get("cod_cliente"),
+            "nombre": cliente.get("nombre"),
+            "razon_social": cliente.get("razon_social"),
+            "direccion": cliente.get("direccion"),
+            "barrio": cliente.get("barrio"),
+            "ciudad": cliente.get("ciudad"),
+            "telefono": cliente.get("telefono"),
+            "dias_visita": cliente.get("dias_visita"),
+            "ultima_novedad": ultima_novedad,
+            "notas_permanentes": (notas_result.data or []) if notas_result else [],
         }
 
     async def get_cliente_de_cola(self, rutero_cliente_id: str) -> Optional[dict]:
