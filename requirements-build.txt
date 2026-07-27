@@ -1,0 +1,4 @@
+# Solo para generar el .exe (no lo necesita la app en tiempo de ejecución).
+# Instalar además de requirements.txt: pip install -r requirements-build.txt
+pyinstaller>=6.21.0
+pyinstaller-hooks-contrib>=2024.9

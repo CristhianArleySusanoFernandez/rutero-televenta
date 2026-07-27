@@ -1,6 +1,8 @@
 from fastapi.templating import Jinja2Templates
 
-templates = Jinja2Templates(directory="src/api/templates")
+from src.paths import base_dir
+
+templates = Jinja2Templates(directory=str(base_dir() / "src" / "api" / "templates"))
 
 
 def _telefono_valido(telefono) -> bool:
