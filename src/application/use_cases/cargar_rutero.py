@@ -20,15 +20,18 @@ class CargarRutero:
         self._cliente_repo = cliente_repo
         self._llamada_repo = llamada_repo
 
-    async def execute(self, file_bytes: bytes, fecha: date) -> dict:
-        clientes, usuario_id, asesor = self._parser.parse(file_bytes)
+    async def execute(self, file_bytes: bytes, fecha: date, asesor_televenta: str) -> dict:
+        # El "Asesor" del Excel es quien visita a esos clientes en campo, no
+        # quien los llama por teléfono — no determina el dueño del rutero.
+        # El dueño es siempre quien tiene la sesión abierta al cargar.
+        clientes, usuario_id, asesor_campo = self._parser.parse(file_bytes)
 
         log.info(
-            "Cargando rutero — fecha: %s | asesor: %s | clientes a insertar: %d",
-            fecha, asesor, len(clientes),
+            "Cargando rutero — fecha: %s | asesor televenta: %s | asesor de campo (Excel): %s | clientes a insertar: %d",
+            fecha, asesor_televenta, asesor_campo, len(clientes),
         )
 
-        rutero_dia_id = await self._llamada_repo.crear_rutero_dia(fecha, usuario_id, asesor)
+        rutero_dia_id = await self._llamada_repo.crear_rutero_dia(fecha, usuario_id, asesor_televenta)
 
         insertados = 0
         for posicion, cliente in enumerate(clientes, start=1):
@@ -45,4 +48,4 @@ class CargarRutero:
             "Rutero cargado — fecha: %s | insertados en Supabase: %d",
             fecha, insertados,
         )
-        return {"fecha": str(fecha), "clientes_cargados": insertados, "asesor": asesor}
+        return {"fecha": str(fecha), "clientes_cargados": insertados, "asesor": asesor_televenta}

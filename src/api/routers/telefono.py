@@ -1,11 +1,12 @@
 import uuid
 
-from fastapi import APIRouter, WebSocket
+from fastapi import APIRouter, Depends, WebSocket
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 
-from src.api.dependencies import get_telefono_gateway
+from src.api.dependencies import get_asesor_actual, get_asesor_repo, get_telefono_gateway
+from src.domain.ports.asesor_repository import AsesorRepository
 
 router = APIRouter(tags=["telefono"])
 
@@ -38,13 +39,19 @@ async def ws_telefono(websocket: WebSocket):
 # ─────────────────────────────────────────────────────────────
 
 @router.get("/telefono/estado")
-async def listar_telefonos():
+async def listar_telefonos(
+    asesor: str = Depends(get_asesor_actual),
+    asesor_repo: AsesorRepository = Depends(get_asesor_repo),
+):
     """
-    Devuelve el estado de todos los teléfonos conectados.
-    Útil para mostrar en el panel qué asesores tienen el teléfono activo.
+    Devuelve el estado de ÚNICAMENTE el teléfono vinculado al asesor de la
+    sesión actual — no los de las demás asesoras.
     """
-    sesiones = _gateway.listar_sesiones()
-    return JSONResponse([s.to_dict() for s in sesiones])
+    telefono_id = await asesor_repo.get_telefono_id(asesor)
+    if not telefono_id:
+        return JSONResponse([])
+    sesion = _gateway.get_sesion(telefono_id)
+    return JSONResponse([sesion.to_dict()] if sesion else [])
 
 
 @router.get("/telefono/{telefono_id}/estado")

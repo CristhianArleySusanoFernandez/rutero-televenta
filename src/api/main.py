@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from src.api.dependencies import ASESOR_COOKIE, get_obtener_rutero_dia
+from src.api.dependencies import ASESOR_COOKIE, get_asesor_actual, get_obtener_rutero_dia
 from src.api.routers import asesor, cola, llamadas, notas, reportes, rutero, telefono
 from src.api.templates_config import templates
 from src.application.use_cases.calcular_stats_rutero import calcular_stats, filtrar_clientes
@@ -51,10 +51,11 @@ async def index(
     request: Request,
     filtro: str = "todos",
     fecha: Optional[date] = None,
+    asesor: str = Depends(get_asesor_actual),
     uc: ObtenerRuteroDia = Depends(get_obtener_rutero_dia),
 ):
     fecha_efectiva = fecha or date.today()
-    clientes = await uc.execute(fecha_efectiva)
+    clientes = await uc.execute(fecha_efectiva, asesor)
 
     stats = calcular_stats(clientes)
     clientes_filtrados = filtrar_clientes(clientes, filtro)

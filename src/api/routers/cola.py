@@ -6,6 +6,8 @@ from pydantic import BaseModel
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from src.api.dependencies import (
+    get_asesor_actual,
+    get_asesor_repo,
     get_llamada_repo,
     get_obtener_cliente_especifico,
     get_obtener_historial,
@@ -15,7 +17,7 @@ from src.api.dependencies import (
     get_telefono_gateway,
 )
 from src.api.templates_config import templates
-from src.config import settings
+from src.domain.ports.asesor_repository import AsesorRepository
 from src.domain.value_objects.estado_llamada import EstadoLlamada
 from src.application.use_cases.obtener_cliente_especifico import ObtenerClienteEspecifico
 from src.application.use_cases.obtener_historial import ObtenerHistorial
@@ -49,6 +51,7 @@ async def vista_enfocada(
     request: Request,
     fecha: Optional[date] = Query(None),
     rc: Optional[str] = Query(None),
+    asesor: str = Depends(get_asesor_actual),
     uc: ObtenerSiguienteCliente = Depends(get_obtener_siguiente_cliente),
     uc_especifico: ObtenerClienteEspecifico = Depends(get_obtener_cliente_especifico),
     uc_historial: ObtenerHistorial = Depends(get_obtener_historial),
@@ -73,7 +76,7 @@ async def vista_enfocada(
         if cliente is not None:
             return await _render_cliente(cliente)
 
-    resultado = await uc.execute(fecha_efectiva)
+    resultado = await uc.execute(fecha_efectiva, asesor)
 
     if resultado["situacion"] == "cliente":
         return await _render_cliente(resultado["cliente"])
@@ -132,61 +135,52 @@ class LlamarColaBody(BaseModel):
     rutero_cliente_id: str
 
 
-def _resolver_telefono_id(gateway: WebSocketTelefonoGateway) -> tuple[Optional[str], Optional[dict]]:
+async def _resolver_telefono_id(
+    gateway: WebSocketTelefonoGateway, asesor: str, asesor_repo: AsesorRepository
+) -> tuple[Optional[str], Optional[dict]]:
     """
-    Regla híbrida de selección del teléfono (Opción A: un teléfono por PC):
-      1. TELEFONO_ID en .env → usar ese.
-      2. Sin config y exactamente 1 conectado → usar el único.
-      3. Sin config y 0 conectados → error.
-      4. Sin config y 2+ conectados → error (pedir config explícita).
+    El teléfono a usar es el vinculado al asesor de la sesión actual
+    (tabla 'asesores'), no cualquiera que esté conectado — varias
+    asesoras pueden tener el teléfono abierto al mismo tiempo.
 
     Devuelve (telefono_id, None) si resuelve, o (None, {error, status}) si no.
     """
-    if settings.telefono_id:
-        sesion = gateway.get_sesion(settings.telefono_id)
-        if sesion is None:
-            return None, {
-                "error": (
-                    f"El teléfono configurado '{settings.telefono_id}' no está conectado. "
-                    "Verifica que la app esté abierta y en la misma red WiFi."
-                ),
-                "status": 404,
-            }
-        return settings.telefono_id, None
-
-    sesiones = gateway.listar_sesiones()
-    if not sesiones:
+    telefono_id = await asesor_repo.get_telefono_id(asesor)
+    if not telefono_id:
         return None, {
             "error": (
-                "No hay ningún teléfono conectado. "
-                "Abre la app en el teléfono y verifica que esté en la misma red WiFi."
+                f"'{asesor}' no tiene un teléfono configurado. "
+                "Ve a 'Cambiar asesor' y configura tu teléfono."
+            ),
+            "status": 400,
+        }
+
+    sesion = gateway.get_sesion(telefono_id)
+    if sesion is None:
+        return None, {
+            "error": (
+                f"Tu teléfono ('{telefono_id}') no está conectado. "
+                "Verifica que la app esté abierta y en la misma red/internet."
             ),
             "status": 404,
         }
-    if len(sesiones) > 1:
-        ids = ", ".join(s.telefono_id for s in sesiones)
-        return None, {
-            "error": (
-                f"Hay varios teléfonos conectados ({ids}). "
-                "Configura TELEFONO_ID en el archivo .env para elegir cuál usar."
-            ),
-            "status": 409,
-        }
-    return sesiones[0].telefono_id, None
+    return telefono_id, None
 
 
 @router.post("/llamar")
 async def llamar_cliente_actual(
     body: LlamarColaBody,
+    asesor: str = Depends(get_asesor_actual),
     uc: OrdenarLlamadaCliente = Depends(get_ordenar_llamada_cliente),
     gateway: WebSocketTelefonoGateway = Depends(get_telefono_gateway),
+    asesor_repo: AsesorRepository = Depends(get_asesor_repo),
 ):
     """
     El asesor confirma la llamada al cliente actual de la cola.
     Resuelve qué teléfono usar, ordena marcar y asocia el llamada_id
     al rutero_cliente para correlacionar la duración cuando llegue el IDLE.
     """
-    telefono_id, err = _resolver_telefono_id(gateway)
+    telefono_id, err = await _resolver_telefono_id(gateway, asesor, asesor_repo)
     if err:
         return JSONResponse({"error": err["error"]}, status_code=err["status"])
 

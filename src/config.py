@@ -8,9 +8,6 @@ class Settings(BaseSettings):
     supabase_key: str
     app_host: str = "0.0.0.0"
     app_port: int = 8000
-    # Id del teléfono de este asesor (Opción A: un teléfono por PC).
-    # Vacío = usar el único teléfono conectado; si hay varios, es obligatorio.
-    telefono_id: str = ""
 
     # Ruta absoluta: el .env vive junto al .exe, no dentro del bundle de
     # PyInstaller, y no debe depender del directorio de trabajo del proceso.

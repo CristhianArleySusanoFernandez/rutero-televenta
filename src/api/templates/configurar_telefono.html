@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Mi teléfono — Rutero Televenta{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto mt-10 bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+    <h1 class="text-2xl font-bold text-marca mb-1">Mi teléfono</h1>
+    <p class="text-gray-500 text-sm mb-6">
+        El id del teléfono que la app Android muestra al registrarse. Cuando
+        {{ asesor }} presione "Llamar", el sistema usará este teléfono.
+    </p>
+
+    <form method="post" action="/asesor/telefono" class="space-y-3">
+        <label class="block text-sm font-medium text-gray-600">Id del teléfono</label>
+        <input
+            type="text"
+            name="telefono_id"
+            required
+            value="{{ telefono_actual or '' }}"
+            placeholder="Ej: asesora_ana_01"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cian"
+        >
+        <button
+            type="submit"
+            class="w-full bg-marca text-white font-semibold py-2 rounded-lg hover:bg-marca-hover transition"
+        >
+            Guardar
+        </button>
+    </form>
+</div>
+{% endblock %}

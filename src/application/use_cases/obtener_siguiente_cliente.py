@@ -24,12 +24,12 @@ class ObtenerSiguienteCliente:
     def __init__(self, repo: LlamadaRepository):
         self._repo = repo
 
-    async def execute(self, fecha: date) -> dict:
-        cliente = await self._repo.get_siguiente_en_cola(fecha)
+    async def execute(self, fecha: date, asesor: str) -> dict:
+        cliente = await self._repo.get_siguiente_en_cola(fecha, asesor)
         if cliente is not None:
             return {"situacion": "cliente", "cliente": cliente}
 
-        reagendados = await self._repo.get_reagendados_no_vencidos(fecha)
+        reagendados = await self._repo.get_reagendados_no_vencidos(fecha, asesor)
         if reagendados:
             return {
                 "situacion": "esperando",

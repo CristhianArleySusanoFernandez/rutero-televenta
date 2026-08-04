@@ -19,6 +19,7 @@ class SupabaseLlamadaRepository(LlamadaRepository):
             self._db.table("rutero_dias")
             .select("id")
             .eq("fecha", str(fecha))
+            .eq("asesor", asesor)
             .limit(1)
             .execute()
         )
@@ -32,11 +33,12 @@ class SupabaseLlamadaRepository(LlamadaRepository):
         )
         return result.data[0]["id"]
 
-    async def get_rutero_dia_id(self, fecha: date) -> Optional[str]:
+    async def get_rutero_dia_id(self, fecha: date, asesor: str) -> Optional[str]:
         result = (
             self._db.table("rutero_dias")
             .select("id")
             .eq("fecha", str(fecha))
+            .eq("asesor", asesor)
             .limit(1)
             .execute()
         )
@@ -88,18 +90,10 @@ class SupabaseLlamadaRepository(LlamadaRepository):
             estado=EstadoLlamada(row["estado"]),
         )
 
-    async def get_llamadas_del_dia(self, fecha: date) -> List[dict]:
-        rutero_dia = (
-            self._db.table("rutero_dias")
-            .select("id")
-            .eq("fecha", str(fecha))
-            .limit(1)
-            .execute()
-        )
-        if not rutero_dia.data:
+    async def get_llamadas_del_dia(self, fecha: date, asesor: str) -> List[dict]:
+        rutero_dia_id = await self.get_rutero_dia_id(fecha, asesor)
+        if rutero_dia_id is None:
             return []
-
-        rutero_dia_id = rutero_dia.data[0]["id"]
 
         result = (
             self._db.table("rutero_clientes")
@@ -188,17 +182,10 @@ class SupabaseLlamadaRepository(LlamadaRepository):
         novedad.id = row["id"]
         return novedad
 
-    async def get_problematicos_del_dia(self, fecha: date) -> List[dict]:
-        rutero_dia = (
-            self._db.table("rutero_dias")
-            .select("id")
-            .eq("fecha", str(fecha))
-            .limit(1)
-            .execute()
-        )
-        if not rutero_dia.data:
+    async def get_problematicos_del_dia(self, fecha: date, asesor: str) -> List[dict]:
+        rutero_dia_id = await self.get_rutero_dia_id(fecha, asesor)
+        if rutero_dia_id is None:
             return []
-        rutero_dia_id = rutero_dia.data[0]["id"]
 
         # Se parte de TODOS los rutero_clientes del día (no solo estado
         # no_contesto/novedad): un cliente puede haber contestado y aun así
@@ -296,17 +283,10 @@ class SupabaseLlamadaRepository(LlamadaRepository):
     # Cola automática
     # ------------------------------------------------------------------
 
-    async def get_siguiente_en_cola(self, fecha: date) -> Optional[dict]:
-        rutero_dia = (
-            self._db.table("rutero_dias")
-            .select("id")
-            .eq("fecha", str(fecha))
-            .limit(1)
-            .execute()
-        )
-        if not rutero_dia.data:
+    async def get_siguiente_en_cola(self, fecha: date, asesor: str) -> Optional[dict]:
+        rid = await self.get_rutero_dia_id(fecha, asesor)
+        if rid is None:
             return None
-        rid = rutero_dia.data[0]["id"]
 
         ahora_iso = datetime.now(timezone.utc).isoformat()
 
@@ -515,22 +495,16 @@ class SupabaseLlamadaRepository(LlamadaRepository):
             "reagendado_para": reagendado_para,
         }).eq("id", rutero_cliente_id).execute()
 
-    async def get_reagendados_no_vencidos(self, fecha: date) -> List[dict]:
-        rutero_dia = (
-            self._db.table("rutero_dias")
-            .select("id")
-            .eq("fecha", str(fecha))
-            .limit(1)
-            .execute()
-        )
-        if not rutero_dia.data:
+    async def get_reagendados_no_vencidos(self, fecha: date, asesor: str) -> List[dict]:
+        rutero_dia_id = await self.get_rutero_dia_id(fecha, asesor)
+        if rutero_dia_id is None:
             return []
 
         ahora_iso = datetime.now(timezone.utc).isoformat()
         result = (
             self._db.table("rutero_clientes")
             .select("id, reagendado_para, clientes(nombre)")
-            .eq("rutero_dia_id", rutero_dia.data[0]["id"])
+            .eq("rutero_dia_id", rutero_dia_id)
             .eq("estado", EstadoLlamada.REAGENDADO.value)
             .gt("reagendado_para", ahora_iso)
             .order("reagendado_para", desc=False)

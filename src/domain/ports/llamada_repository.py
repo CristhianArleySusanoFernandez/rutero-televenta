@@ -14,8 +14,8 @@ class LlamadaRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_rutero_dia_id(self, fecha: date) -> Optional[str]:
-        """Obtiene el id del rutero del día o None si no existe."""
+    async def get_rutero_dia_id(self, fecha: date, asesor: str) -> Optional[str]:
+        """Obtiene el id del rutero de ese asesor para esa fecha, o None si no existe."""
         ...
 
     @abstractmethod
@@ -28,7 +28,7 @@ class LlamadaRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_llamadas_del_dia(self, fecha: date) -> List[dict]:
+    async def get_llamadas_del_dia(self, fecha: date, asesor: str) -> List[dict]:
         """Retorna lista de dicts con info del cliente + estado + ultima novedad."""
         ...
 
@@ -37,7 +37,7 @@ class LlamadaRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_problematicos_del_dia(self, fecha: date) -> List[dict]:
+    async def get_problematicos_del_dia(self, fecha: date, asesor: str) -> List[dict]:
         """
         Clientes del rutero de esa fecha que requieren una decisión: tienen
         al menos una novedad registrada (independientemente del estado —
@@ -55,7 +55,7 @@ class LlamadaRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_siguiente_en_cola(self, fecha: date) -> Optional[dict]:
+    async def get_siguiente_en_cola(self, fecha: date, asesor: str) -> Optional[dict]:
         """Devuelve el siguiente cliente a llamar (reagendado vencido → pendiente/reintento)."""
         ...
 
@@ -97,7 +97,7 @@ class LlamadaRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_reagendados_no_vencidos(self, fecha: date) -> List[dict]:
+    async def get_reagendados_no_vencidos(self, fecha: date, asesor: str) -> List[dict]:
         """
         Clientes en estado 'reagendado' cuyo reagendado_para AÚN no venció,
         ordenados por vencimiento ascendente.

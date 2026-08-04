@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse
 
-from src.api.dependencies import get_cargar_rutero, get_obtener_rutero_dia
+from src.api.dependencies import get_asesor_actual, get_cargar_rutero, get_obtener_rutero_dia
 from src.api.templates_config import templates
 from src.application.use_cases.calcular_stats_rutero import calcular_stats, filtrar_clientes
 from src.application.use_cases.cargar_rutero import CargarRutero
@@ -18,6 +18,7 @@ async def cargar_rutero(
     request: Request,
     archivo: UploadFile = File(...),
     fecha: Optional[date] = Form(None),
+    asesor: str = Depends(get_asesor_actual),
     uc: CargarRutero = Depends(get_cargar_rutero),
     uc_dia: ObtenerRuteroDia = Depends(get_obtener_rutero_dia),
 ):
@@ -28,11 +29,11 @@ async def cargar_rutero(
 
     try:
         contenido = await archivo.read()
-        resultado = await uc.execute(contenido, fecha_efectiva)
+        resultado = await uc.execute(contenido, fecha_efectiva, asesor)
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Error al procesar el archivo: {e}")
 
-    clientes = await uc_dia.execute(fecha_efectiva)
+    clientes = await uc_dia.execute(fecha_efectiva, asesor)
     stats = calcular_stats(clientes)
 
     is_htmx = request.headers.get("HX-Request")
@@ -50,10 +51,11 @@ async def rutero_hoy(
     request: Request,
     filtro: str = "todos",
     fecha: Optional[date] = None,
+    asesor: str = Depends(get_asesor_actual),
     uc: ObtenerRuteroDia = Depends(get_obtener_rutero_dia),
 ):
     fecha_efectiva = fecha or date.today()
-    clientes = await uc.execute(fecha_efectiva)
+    clientes = await uc.execute(fecha_efectiva, asesor)
     stats = calcular_stats(clientes)
     clientes = filtrar_clientes(clientes, filtro)
 
@@ -68,10 +70,11 @@ async def rutero_hoy(
 async def stats_del_dia(
     request: Request,
     fecha: Optional[date] = None,
+    asesor: str = Depends(get_asesor_actual),
     uc: ObtenerRuteroDia = Depends(get_obtener_rutero_dia),
 ):
     fecha_efectiva = fecha or date.today()
-    clientes = await uc.execute(fecha_efectiva)
+    clientes = await uc.execute(fecha_efectiva, asesor)
     return templates.TemplateResponse(
         request,
         "partials/stats_bar.html",

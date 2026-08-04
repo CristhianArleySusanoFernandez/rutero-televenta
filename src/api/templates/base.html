@@ -69,8 +69,11 @@
             </span>
             {% set asesor_actual = request.cookies.get('asesor') %}
             {% if asesor_actual %}
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-3">
                 <span class="text-white text-sm font-medium whitespace-nowrap">👤 {{ asesor_actual }}</span>
+                <a href="/asesor/telefono" class="text-cian text-xs underline hover:text-white whitespace-nowrap">
+                    Mi teléfono
+                </a>
                 <form method="post" action="/asesor/salir">
                     <button type="submit" class="text-cian text-xs underline hover:text-white whitespace-nowrap">
                         Cambiar asesor

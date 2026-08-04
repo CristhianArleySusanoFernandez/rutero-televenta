@@ -8,5 +8,5 @@ class ObtenerRuteroDia:
     def __init__(self, llamada_repo: LlamadaRepository):
         self._llamada_repo = llamada_repo
 
-    async def execute(self, fecha: date) -> List[dict]:
-        return await self._llamada_repo.get_llamadas_del_dia(fecha)
+    async def execute(self, fecha: date, asesor: str) -> List[dict]:
+        return await self._llamada_repo.get_llamadas_del_dia(fecha, asesor)

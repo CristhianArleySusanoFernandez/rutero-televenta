@@ -11,10 +11,10 @@ class ExportarReporte:
     def __init__(self, llamada_repo: LlamadaRepository):
         self._llamada_repo = llamada_repo
 
-    async def execute(self, fecha: date) -> BytesIO:
+    async def execute(self, fecha: date, asesor: str) -> BytesIO:
         # Solo los que requieren una decisión (novedad, saltado, no contestó
         # tras 2 intentos) — los "Contestó" exitosos no aportan al reporte.
-        problematicos = await self._llamada_repo.get_problematicos_del_dia(fecha)
+        problematicos = await self._llamada_repo.get_problematicos_del_dia(fecha, asesor)
 
         wb = openpyxl.Workbook()
         ws = wb.active

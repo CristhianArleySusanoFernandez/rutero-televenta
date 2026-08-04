@@ -1,10 +1,17 @@
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from src.api.dependencies import ASESOR_COOKIE, get_listar_asesores, get_seleccionar_asesor
+from src.api.dependencies import (
+    ASESOR_COOKIE,
+    get_asesor_actual,
+    get_asesor_repo,
+    get_listar_asesores,
+    get_seleccionar_asesor,
+)
 from src.api.templates_config import templates
 from src.application.use_cases.listar_asesores import ListarAsesores
 from src.application.use_cases.seleccionar_asesor import SeleccionarAsesor
+from src.domain.ports.asesor_repository import AsesorRepository
 
 router = APIRouter(prefix="/asesor", tags=["asesor"])
 
@@ -45,3 +52,27 @@ async def salir():
     respuesta = RedirectResponse("/asesor/seleccionar", status_code=303)
     respuesta.delete_cookie(ASESOR_COOKIE)
     return respuesta
+
+
+@router.get("/telefono", response_class=HTMLResponse)
+async def pantalla_telefono(
+    request: Request,
+    asesor: str = Depends(get_asesor_actual),
+    asesor_repo: AsesorRepository = Depends(get_asesor_repo),
+):
+    telefono_actual = await asesor_repo.get_telefono_id(asesor)
+    return templates.TemplateResponse(
+        request,
+        "configurar_telefono.html",
+        {"asesor": asesor, "telefono_actual": telefono_actual},
+    )
+
+
+@router.post("/telefono")
+async def guardar_telefono(
+    telefono_id: str = Form(...),
+    asesor: str = Depends(get_asesor_actual),
+    asesor_repo: AsesorRepository = Depends(get_asesor_repo),
+):
+    await asesor_repo.set_telefono_id(asesor, telefono_id.strip())
+    return RedirectResponse("/", status_code=303)
