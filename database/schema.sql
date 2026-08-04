@@ -107,3 +107,21 @@ DROP TRIGGER IF EXISTS trigger_rutero_clientes_updated_at ON rutero_clientes;
 CREATE TRIGGER trigger_rutero_clientes_updated_at
     BEFORE UPDATE ON rutero_clientes
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- ============================================================
+-- Multi-asesor: un rutero por (fecha, asesor) en vez de por fecha global
+-- ============================================================
+
+-- Asesores conocidos y su teléfono asignado (Opción A ya no aplica: el
+-- teléfono se resuelve por asesor, no por PC/servidor).
+CREATE TABLE IF NOT EXISTS asesores (
+    nombre TEXT PRIMARY KEY,
+    telefono_id TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- rutero_dias pasa de "una fila por fecha" a "una fila por (fecha, asesor)"
+ALTER TABLE rutero_dias DROP CONSTRAINT IF EXISTS rutero_dias_fecha_key;
+ALTER TABLE rutero_dias ADD CONSTRAINT rutero_dias_fecha_asesor_key UNIQUE (fecha, asesor);
+
+CREATE INDEX IF NOT EXISTS idx_rutero_dias_fecha_asesor ON rutero_dias(fecha, asesor);

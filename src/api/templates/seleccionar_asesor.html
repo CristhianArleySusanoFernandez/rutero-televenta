@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}¿Quién eres? — Rutero Televenta{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto mt-10 bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+    <h1 class="text-2xl font-bold text-marca mb-1">¿Quién eres?</h1>
+    <p class="text-gray-500 text-sm mb-6">Elige tu nombre para ver solo tu rutero.</p>
+
+    {% if nombres %}
+    <form method="post" action="/asesor/seleccionar" class="space-y-2 mb-6">
+        {% for nombre in nombres %}
+        <button
+            type="submit"
+            name="nombre"
+            value="{{ nombre }}"
+            class="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-marca hover:bg-marca-suave transition font-medium text-gray-700"
+        >
+            {{ nombre }}
+        </button>
+        {% endfor %}
+    </form>
+    <div class="flex items-center gap-3 mb-6">
+        <div class="h-px bg-gray-200 flex-1"></div>
+        <span class="text-xs text-gray-400 uppercase">o</span>
+        <div class="h-px bg-gray-200 flex-1"></div>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/asesor/seleccionar" class="space-y-3">
+        <label class="block text-sm font-medium text-gray-600">
+            {% if nombres %}Mi nombre no está en la lista{% else %}Escribe tu nombre{% endif %}
+        </label>
+        <input
+            type="text"
+            name="nombre"
+            required
+            placeholder="Ej: Ana Pérez"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cian"
+        >
+        <button
+            type="submit"
+            class="w-full bg-marca text-white font-semibold py-2 rounded-lg hover:bg-marca-hover transition"
+        >
+            Continuar
+        </button>
+    </form>
+</div>
+{% endblock %}

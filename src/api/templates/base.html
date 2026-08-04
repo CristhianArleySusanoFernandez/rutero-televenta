@@ -63,9 +63,22 @@
             <span class="text-white text-2xl font-bold tracking-tight whitespace-nowrap">📋 Rutero Televenta</span>
             <span class="text-cian text-sm font-medium truncate hidden sm:inline">Distribuciones Santiago De Tunja S.A.S</span>
         </div>
-        <span class="text-white/80 text-sm font-medium whitespace-nowrap" id="fecha-hoy">
-            {% block fecha %}{% endblock %}
-        </span>
+        <div class="flex items-center gap-4">
+            <span class="text-white/80 text-sm font-medium whitespace-nowrap" id="fecha-hoy">
+                {% block fecha %}{% endblock %}
+            </span>
+            {% set asesor_actual = request.cookies.get('asesor') %}
+            {% if asesor_actual %}
+            <div class="flex items-center gap-2">
+                <span class="text-white text-sm font-medium whitespace-nowrap">👤 {{ asesor_actual }}</span>
+                <form method="post" action="/asesor/salir">
+                    <button type="submit" class="text-cian text-xs underline hover:text-white whitespace-nowrap">
+                        Cambiar asesor
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
     </div>
 </nav>
 

@@ -1,6 +1,11 @@
+from typing import Optional
+
+from fastapi import Request
+
 from src.application.use_cases.cargar_rutero import CargarRutero
 from src.application.use_cases.exportar_reporte import ExportarReporte
 from src.application.use_cases.gestionar_notas_cliente import GestionarNotasCliente
+from src.application.use_cases.listar_asesores import ListarAsesores
 from src.application.use_cases.obtener_cliente_especifico import ObtenerClienteEspecifico
 from src.application.use_cases.obtener_datos_tarjeta_cliente import ObtenerDatosTarjetaCliente
 from src.application.use_cases.obtener_historial import ObtenerHistorial
@@ -11,12 +16,16 @@ from src.application.use_cases.registrar_fin_llamada import RegistrarFinLlamada
 from src.application.use_cases.registrar_llamada import RegistrarLlamada
 from src.application.use_cases.registrar_no_contesta import RegistrarNoContesta
 from src.application.use_cases.registrar_novedad import RegistrarNovedad
+from src.application.use_cases.seleccionar_asesor import SeleccionarAsesor
 from src.infrastructure.adapters.excel_rutero_parser import ExcelRuteroParser
+from src.infrastructure.adapters.supabase_asesor_repository import SupabaseAsesorRepository
 from src.infrastructure.adapters.supabase_cliente_repository import SupabaseClienteRepository
 from src.infrastructure.adapters.supabase_llamada_repository import SupabaseLlamadaRepository
 from src.infrastructure.adapters.supabase_nota_cliente_repository import SupabaseNotaClienteRepository
 from src.infrastructure.adapters.websocket_telefono_gateway import WebSocketTelefonoGateway
 from src.infrastructure.supabase_client import get_supabase
+
+ASESOR_COOKIE = "asesor"
 
 
 def get_cliente_repo() -> SupabaseClienteRepository:
@@ -102,3 +111,32 @@ def get_telefono_gateway() -> WebSocketTelefonoGateway:
 
 def get_ordenar_llamada_cliente() -> OrdenarLlamadaCliente:
     return OrdenarLlamadaCliente(get_llamada_repo(), _telefono_gateway)
+
+
+# ──────────────────────────────────────────────────────────────
+# Identidad del asesor — cookie de sesión, sin autenticación.
+# ──────────────────────────────────────────────────────────────
+
+def get_asesor_repo() -> SupabaseAsesorRepository:
+    return SupabaseAsesorRepository(get_supabase())
+
+
+def get_listar_asesores() -> ListarAsesores:
+    return ListarAsesores(get_asesor_repo())
+
+
+def get_seleccionar_asesor() -> SeleccionarAsesor:
+    return SeleccionarAsesor(get_asesor_repo())
+
+
+def get_asesor_actual(request: Request) -> Optional[str]:
+    """Nombre del asesor identificado en esta sesión, o None si no ha elegido."""
+    return request.cookies.get(ASESOR_COOKIE) or None
+
+
+def requerir_asesor_actual(request: Request) -> str:
+    """Como get_asesor_actual, pero exige que ya esté identificado."""
+    nombre = get_asesor_actual(request)
+    if not nombre:
+        raise ValueError("No hay asesor identificado en esta sesión")
+    return nombre
