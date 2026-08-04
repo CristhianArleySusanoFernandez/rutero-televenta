@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi import Request
 
 from src.application.use_cases.cargar_rutero import CargarRutero
+from src.application.use_cases.corregir_resultado import CorregirResultado
 from src.application.use_cases.exportar_reporte import ExportarReporte
 from src.application.use_cases.gestionar_notas_cliente import GestionarNotasCliente
 from src.application.use_cases.listar_asesores import ListarAsesores
@@ -50,6 +51,10 @@ def get_registrar_llamada() -> RegistrarLlamada:
 
 def get_registrar_novedad() -> RegistrarNovedad:
     return RegistrarNovedad(get_llamada_repo())
+
+
+def get_corregir_resultado() -> CorregirResultado:
+    return CorregirResultado(get_llamada_repo())
 
 
 def get_obtener_rutero_dia() -> ObtenerRuteroDia:

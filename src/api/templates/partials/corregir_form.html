@@ -1,0 +1,32 @@
+<div class="corregir-form mt-2 bg-blue-50 border border-blue-200 rounded-lg p-3" id="corregir-form-{{ rutero_cliente_id }}">
+    <p class="text-sm font-semibold text-blue-800 mb-2">✏ Corregir resultado</p>
+
+    <select
+        id="corregir-estado-{{ rutero_cliente_id }}"
+        class="w-full text-sm border border-blue-300 rounded-lg p-2 mb-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+    >
+        <option value="contesto" {{ "selected" if estado_actual != "contesto" }}>✓ Contestó</option>
+        <option value="no_contesto" {{ "selected" if estado_actual != "no_contesto" }}>✗ No contestó</option>
+    </select>
+
+    <textarea
+        id="corregir-obs-{{ rutero_cliente_id }}"
+        class="w-full text-sm border border-blue-300 rounded-lg p-2 mb-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+        rows="2"
+        placeholder="Explica qué pasó (obligatorio, ej: 'Cliente devolvió la llamada a las 3pm y realizó pedido')..."
+    ></textarea>
+
+    <div class="flex gap-2">
+        <button
+            id="btn-guardar-correccion-{{ rutero_cliente_id }}"
+            type="button"
+            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-1.5 rounded-lg transition disabled:opacity-50"
+            onclick="enviarCorreccion('{{ rutero_cliente_id }}', '{{ cliente_id }}', this)"
+        >Guardar</button>
+        <button
+            type="button"
+            class="px-3 text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg"
+            onclick="cerrarFormCorreccion('{{ rutero_cliente_id }}')"
+        >Cancelar</button>
+    </div>
+</div>

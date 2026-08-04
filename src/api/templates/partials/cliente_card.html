@@ -108,10 +108,22 @@
             class="text-xs bg-gray-50 hover:bg-gray-100 text-gray-600 font-medium py-1.5 px-2 rounded-lg transition"
             onclick="toggleHistorial('{{ rc_id }}', '{{ cli_id }}')"
         >📋 Historial</button>
+
+        {% if estado in ('contesto', 'no_contesto') %}
+        <button
+            class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium py-1.5 px-2 rounded-lg transition"
+            hx-get="/llamadas/{{ rc_id }}/corregir-form?cliente_id={{ cli_id }}&estado_actual={{ estado }}"
+            hx-target="#corregir-slot-{{ rc_id }}"
+            hx-swap="innerHTML"
+        >✏ Corregir</button>
+        {% endif %}
     </div>
 
     <!-- Slot inline para formulario de novedad -->
     <div id="novedad-slot-{{ rc_id }}"></div>
+
+    <!-- Slot inline para formulario de corrección de resultado -->
+    <div id="corregir-slot-{{ rc_id }}"></div>
 
     <!-- Slot para notas permanentes (expandible) -->
     <div id="notas-{{ rc_id }}"></div>
@@ -151,5 +163,46 @@ function actualizarEstado(rcId, estado) {
         htmx.process(document.getElementById('card-' + rcId));
         refrescarStats();
     });
+}
+
+function cerrarFormCorreccion(rcId) {
+    const slot = document.getElementById('corregir-slot-' + rcId);
+    if (slot) slot.innerHTML = '';
+}
+
+async function enviarCorreccion(rcId, cliId, btnEl) {
+    const obs = document.getElementById('corregir-obs-' + rcId).value.trim();
+    if (!obs) {
+        alert('La observación es obligatoria: explica qué pasó.');
+        return;
+    }
+    const estadoNuevo = document.getElementById('corregir-estado-' + rcId).value;
+
+    btnEl.disabled = true;
+    btnEl.textContent = 'Guardando...';
+
+    const r = await fetch('/llamadas/' + rcId + '/corregir-resultado', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            cliente_id: cliId,
+            estado_nuevo: estadoNuevo,
+            observacion: obs,
+            fecha: fechaActiva(),
+        }),
+    });
+    const html = await r.text();
+
+    if (!r.ok) {
+        alert('No se pudo corregir: ' + html);
+        btnEl.disabled = false;
+        btnEl.textContent = 'Guardar';
+        return;
+    }
+
+    const card = document.getElementById('card-' + rcId);
+    card.outerHTML = html;
+    htmx.process(document.getElementById('card-' + rcId));
+    refrescarStats();
 }
 </script>

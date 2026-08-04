@@ -125,3 +125,11 @@ ALTER TABLE rutero_dias DROP CONSTRAINT IF EXISTS rutero_dias_fecha_key;
 ALTER TABLE rutero_dias ADD CONSTRAINT rutero_dias_fecha_asesor_key UNIQUE (fecha, asesor);
 
 CREATE INDEX IF NOT EXISTS idx_rutero_dias_fecha_asesor ON rutero_dias(fecha, asesor);
+
+-- Falta desde siempre: crear_llamada() hace upsert con
+-- on_conflict="rutero_dia_id,cliente_id" pero nunca existió el constraint
+-- que ese ON CONFLICT necesita (42P10: "no unique or exclusion constraint
+-- matching the ON CONFLICT specification").
+ALTER TABLE rutero_clientes DROP CONSTRAINT IF EXISTS rutero_clientes_rutero_dia_id_cliente_id_key;
+ALTER TABLE rutero_clientes ADD CONSTRAINT rutero_clientes_rutero_dia_id_cliente_id_key
+    UNIQUE (rutero_dia_id, cliente_id);

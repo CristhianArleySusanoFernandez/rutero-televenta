@@ -5,12 +5,14 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from src.api.dependencies import (
+    get_corregir_resultado,
     get_obtener_datos_tarjeta_cliente,
     get_obtener_historial,
     get_registrar_llamada,
     get_registrar_novedad,
 )
 from src.api.templates_config import templates
+from src.application.use_cases.corregir_resultado import CorregirResultado
 from src.application.use_cases.obtener_datos_tarjeta_cliente import ObtenerDatosTarjetaCliente
 from src.application.use_cases.obtener_historial import ObtenerHistorial
 from src.application.use_cases.registrar_llamada import RegistrarLlamada
@@ -29,6 +31,13 @@ class NovedadBody(BaseModel):
     cliente_id: str
     tipo: TipoNovedad
     observacion: str | None = None
+    fecha: date | None = None
+
+
+class CorregirResultadoBody(BaseModel):
+    cliente_id: str
+    estado_nuevo: EstadoLlamada
+    observacion: str
     fecha: date | None = None
 
 
@@ -81,6 +90,54 @@ async def registrar_novedad(
         request,
         "partials/cliente_card.html",
         {"cliente": cliente_data},
+    )
+
+
+@router.post("/{rutero_cliente_id}/corregir-resultado", response_class=HTMLResponse)
+async def corregir_resultado(
+    request: Request,
+    rutero_cliente_id: str,
+    body: CorregirResultadoBody,
+    uc: CorregirResultado = Depends(get_corregir_resultado),
+    uc_tarjeta: ObtenerDatosTarjetaCliente = Depends(get_obtener_datos_tarjeta_cliente),
+):
+    if not body.observacion.strip():
+        raise HTTPException(status_code=400, detail="La observación es obligatoria")
+
+    try:
+        await uc.execute(
+            rutero_cliente_id=rutero_cliente_id,
+            cliente_id=body.cliente_id,
+            estado_nuevo=body.estado_nuevo,
+            observacion=body.observacion.strip(),
+            fecha=body.fecha or date.today(),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    cliente_data = await uc_tarjeta.execute(rutero_cliente_id)
+    return templates.TemplateResponse(
+        request,
+        "partials/cliente_card.html",
+        {"cliente": cliente_data},
+    )
+
+
+@router.get("/{rutero_cliente_id}/corregir-form", response_class=HTMLResponse)
+async def corregir_form(
+    request: Request,
+    rutero_cliente_id: str,
+    cliente_id: str,
+    estado_actual: str,
+):
+    return templates.TemplateResponse(
+        request,
+        "partials/corregir_form.html",
+        {
+            "rutero_cliente_id": rutero_cliente_id,
+            "cliente_id": cliente_id,
+            "estado_actual": estado_actual,
+        },
     )
 
 
