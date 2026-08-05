@@ -4,55 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Rutero Televenta{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <style>
-        /* ────────────────────────────────────────────────────────────
-           Paleta de marca — Distribuciones Santiago De Tunja S.A.S
-           ÚNICA fuente de verdad de los colores de marca.
-           Los colores de ESTADO (verde=contestó, rojo=no contestó,
-           ámbar/naranja=novedad/reagendado, gris=pendiente) usan las
-           clases estándar de Tailwind y NO se definen aquí: son
-           semántica funcional, no marca.
-           ──────────────────────────────────────────────────────────── */
-        :root {
-            --color-primario:         #0F2E6B;  /* azul navy — chrome principal */
-            --color-primario-hover:   #0A2352;  /* navy oscuro — hover */
-            --color-primario-suave:   #EEF2FA;  /* navy ~5% — fondos sutiles */
-            --color-secundario:       #29A9E0;  /* cian — acentos y focus (nunca fondo con texto blanco) */
-            --color-secundario-suave: #E8F6FD;  /* cian claro — fondos informativos */
-            --color-acento:           #F5B324;  /* ámbar — solo fondo/borde, texto navy encima */
-            --color-aviso:            #D97706;  /* naranja — avisos */
-            --color-alerta:           #B02A1F;  /* rojo ladrillo — SOLO errores reales */
-        }
-    </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        marca:  {
-                            DEFAULT: 'var(--color-primario)',
-                            hover:   'var(--color-primario-hover)',
-                            suave:   'var(--color-primario-suave)',
-                        },
-                        cian:   {
-                            DEFAULT: 'var(--color-secundario)',
-                            suave:   'var(--color-secundario-suave)',
-                        },
-                        acento: 'var(--color-acento)',
-                        aviso:  'var(--color-aviso)',
-                        alerta: 'var(--color-alerta)',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
-        .htmx-request .htmx-indicator { opacity: 1; }
-        .htmx-request.htmx-indicator { opacity: 1; }
-    </style>
+    <link rel="stylesheet" href="/static/css/tailwind.css">
+    <script src="/static/js/htmx.min.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen">
 

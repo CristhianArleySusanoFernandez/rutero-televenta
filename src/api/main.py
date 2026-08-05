@@ -5,6 +5,7 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from src.api.dependencies import ASESOR_COOKIE, get_asesor_actual, get_obtener_rutero_dia
 from src.api.routers import asesor, cola, llamadas, notas, reportes, rutero, telefono
@@ -12,6 +13,7 @@ from src.api.templates_config import templates
 from src.application.use_cases.calcular_stats_rutero import calcular_stats, filtrar_clientes
 from src.application.use_cases.obtener_rutero_dia import ObtenerRuteroDia
 from src.domain.value_objects.tipo_novedad import TipoNovedad
+from src.paths import base_dir
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s [%(name)s] %(message)s")
 
@@ -23,6 +25,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Rutero Televenta — Distribuciones Santiago De Tunja", lifespan=lifespan)
 
+app.mount(
+    "/static",
+    StaticFiles(directory=str(base_dir() / "src" / "api" / "static")),
+    name="static",
+)
+
 
 @app.middleware("http")
 async def requerir_asesor_identificado(request: Request, call_next):
@@ -31,7 +39,7 @@ async def requerir_asesor_identificado(request: Request, call_next):
     redirige a la pantalla de selección — no hay auth, pero sí identidad.
     """
     path = request.url.path
-    exento = path.startswith("/asesor") or path.startswith("/ws")
+    exento = path.startswith("/asesor") or path.startswith("/ws") or path.startswith("/static")
     if not exento and ASESOR_COOKIE not in request.cookies:
         return RedirectResponse("/asesor/seleccionar")
     return await call_next(request)

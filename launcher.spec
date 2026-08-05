@@ -25,6 +25,7 @@ hidden_imports = [
 
 datas = [
     ("src/api/templates", "src/api/templates"),
+    ("src/api/static", "src/api/static"),
 ]
 
 a = Analysis(
