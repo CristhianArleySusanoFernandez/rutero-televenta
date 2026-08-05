@@ -548,3 +548,28 @@ class SupabaseLlamadaRepository(LlamadaRepository):
         self._db.table("rutero_clientes").update({
             "duracion_seg": duracion_seg,
         }).eq("llamada_id", llamada_id).execute()
+
+    async def contar_rutero_dia(self, fecha: date, asesor: str) -> dict:
+        rutero_dia_id = await self.get_rutero_dia_id(fecha, asesor)
+        if rutero_dia_id is None:
+            return {"total": 0, "ya_llamados": 0}
+
+        result = (
+            self._db.table("rutero_clientes")
+            .select("estado")
+            .eq("rutero_dia_id", rutero_dia_id)
+            .execute()
+        )
+        rows = result.data or []
+        ya_llamados = sum(
+            1 for r in rows
+            if r["estado"] in (EstadoLlamada.CONTESTO.value, EstadoLlamada.NO_CONTESTO.value)
+        )
+        return {"total": len(rows), "ya_llamados": ya_llamados}
+
+    async def eliminar_rutero_dia(self, fecha: date, asesor: str) -> bool:
+        rutero_dia_id = await self.get_rutero_dia_id(fecha, asesor)
+        if rutero_dia_id is None:
+            return False
+        self._db.table("rutero_dias").delete().eq("id", rutero_dia_id).execute()
+        return True

@@ -1,15 +1,31 @@
 import logging
+from collections import defaultdict
 from datetime import date
 
 from src.domain.entities.llamada import Llamada
 from src.domain.ports.cliente_repository import ClienteRepository
 from src.domain.ports.llamada_repository import LlamadaRepository
 from src.domain.ports.rutero_parser import RuteroParser
+from src.domain.servicios.dia_visita import fecha_del_dia_en_semana, parsear_dia_visita
 
 log = logging.getLogger(__name__)
 
 
 class CargarRutero:
+    """
+    El archivo trae los clientes de TODA la semana; la columna "Dias Visita"
+    indica a qué día de la semana pertenece cada uno. Se reparten en un
+    rutero_dia distinto por cada día que aparezca en el archivo (misma
+    semana que `fecha`), reutilizando el modelo existente de un rutero_dia
+    por (fecha, asesor) — así la cola, las stats y el reporte, que ya
+    filtran por fecha, quedan filtrados por día sin tocarlos.
+
+    Clientes cuyo código no termina en un día válido no se descartan: se
+    incluyen en TODOS los días con clientes de esa semana, marcados como
+    "sin día definido" (calculado al vuelo desde dias_visita, sin columna
+    nueva) para que la tarjeta lo muestre y la asesora lo revise.
+    """
+
     def __init__(
         self,
         parser: RuteroParser,
@@ -27,25 +43,50 @@ class CargarRutero:
         clientes, usuario_id, asesor_campo = self._parser.parse(file_bytes)
 
         log.info(
-            "Cargando rutero — fecha: %s | asesor televenta: %s | asesor de campo (Excel): %s | clientes a insertar: %d",
+            "Cargando rutero semanal — semana de: %s | asesor televenta: %s | asesor de campo (Excel): %s | clientes en archivo: %d",
             fecha, asesor_televenta, asesor_campo, len(clientes),
         )
 
-        rutero_dia_id = await self._llamada_repo.crear_rutero_dia(fecha, usuario_id, asesor_televenta)
+        por_dia: dict[int, list] = defaultdict(list)
+        sin_dia: list = []
+        for cliente in clientes:
+            dia = parsear_dia_visita(cliente.dias_visita)
+            if dia is None:
+                sin_dia.append(cliente)
+            else:
+                por_dia[dia].append(cliente)
+
+        dias_con_clientes = sorted(por_dia.keys())
+        if sin_dia:
+            for dia in dias_con_clientes:
+                por_dia[dia].extend(sin_dia)
+            log.info("Clientes sin día de visita válido: %d — incluidos en todos los días de la semana", len(sin_dia))
 
         insertados = 0
-        for posicion, cliente in enumerate(clientes, start=1):
-            cliente_guardado = await self._cliente_repo.upsert(cliente)
-            llamada = Llamada(
-                rutero_dia_id=rutero_dia_id,
-                cliente_id=cliente_guardado.id,
-                posicion_cola=posicion,
-            )
-            await self._llamada_repo.crear_llamada(llamada)
-            insertados += 1
+        dias_cargados = []
+        for dia in dias_con_clientes:
+            fecha_dia = fecha_del_dia_en_semana(fecha, dia)
+            rutero_dia_id = await self._llamada_repo.crear_rutero_dia(fecha_dia, usuario_id, asesor_televenta)
+
+            for posicion, cliente in enumerate(por_dia[dia], start=1):
+                cliente_guardado = await self._cliente_repo.upsert(cliente)
+                llamada = Llamada(
+                    rutero_dia_id=rutero_dia_id,
+                    cliente_id=cliente_guardado.id,
+                    posicion_cola=posicion,
+                )
+                await self._llamada_repo.crear_llamada(llamada)
+                insertados += 1
+
+            dias_cargados.append({"fecha": str(fecha_dia), "clientes": len(por_dia[dia])})
 
         log.info(
-            "Rutero cargado — fecha: %s | insertados en Supabase: %d",
-            fecha, insertados,
+            "Rutero semanal cargado — insertados en Supabase: %d | días: %s",
+            insertados, dias_cargados,
         )
-        return {"fecha": str(fecha), "clientes_cargados": insertados, "asesor": asesor_televenta}
+        return {
+            "clientes_cargados": insertados,
+            "asesor": asesor_televenta,
+            "dias": dias_cargados,
+            "sin_dia_definido": len(sin_dia),
+        }

@@ -55,6 +55,13 @@
 
     <span id="cargando" class="htmx-indicator text-gray-500 text-sm">⏳ Procesando...</span>
 
+    <!-- Eliminar rutero del día -->
+    <button
+        onclick="eliminarRuteroDelDia()"
+        class="text-xs text-alerta hover:underline whitespace-nowrap"
+        title="Borra el rutero de este día para ti. No afecta notas ni historial de los clientes."
+    >🗑 Eliminar rutero de este día</button>
+
     <!-- Selector de fecha del rutero -->
     <div class="flex items-center gap-2 text-sm text-gray-600">
         <label for="selector-fecha" class="font-medium whitespace-nowrap">📅 Fecha:</label>
@@ -574,6 +581,35 @@ async function confirmarReagendar(rcId, minutos) {
     });
     document.getElementById('slot-reagendar-enfocado').innerHTML = '';
     despuesDeResultado();
+}
+
+// ──────────────────────────────────────────────
+// Eliminar rutero del día (destructivo, con confirmación)
+// ──────────────────────────────────────────────
+async function eliminarRuteroDelDia() {
+    const fecha = fechaActiva();
+    const r = await fetch('/rutero/resumen?fecha=' + fecha);
+    const data = await r.json();
+
+    if (!data.total) {
+        alert('No hay rutero cargado para esta fecha.');
+        return;
+    }
+
+    let msg = `Vas a borrar ${data.total} clientes de tu rutero del ${fecha}`;
+    if (data.ya_llamados > 0) {
+        msg += `, de los cuales ${data.ya_llamados} ya fueron llamados`;
+    }
+    msg += '. Las notas y el historial de novedades de los clientes NO se pierden. Esta acción no se puede deshacer. ¿Continuar?';
+
+    if (!confirm(msg)) return;
+
+    const del = await fetch('/rutero/eliminar?fecha=' + fecha, { method: 'DELETE' });
+    if (del.ok) {
+        window.location.href = '/?fecha=' + fecha;
+    } else {
+        alert('No se pudo eliminar el rutero.');
+    }
 }
 
 // ──────────────────────────────────────────────

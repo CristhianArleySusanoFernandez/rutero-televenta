@@ -122,3 +122,21 @@ class LlamadaRepository(ABC):
     async def guardar_duracion_llamada(self, llamada_id: str, duracion_seg: int) -> None:
         """Guarda la duración reportada en el IDLE, buscando por llamada_id."""
         ...
+
+    @abstractmethod
+    async def contar_rutero_dia(self, fecha: date, asesor: str) -> dict:
+        """
+        {'total': N, 'ya_llamados': M} del rutero de esa fecha+asesor.
+        ya_llamados = clientes en estado contesto o no_contesto.
+        Si no existe el rutero_dia, retorna {'total': 0, 'ya_llamados': 0}.
+        """
+        ...
+
+    @abstractmethod
+    async def eliminar_rutero_dia(self, fecha: date, asesor: str) -> bool:
+        """
+        Borra el rutero_dia de esa fecha+asesor (cascada a rutero_clientes;
+        las novedades de esos clientes sobreviven, ver migración SET NULL).
+        Retorna True si había algo que borrar.
+        """
+        ...

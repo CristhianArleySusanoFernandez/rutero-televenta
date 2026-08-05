@@ -2,12 +2,18 @@ from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
-from src.api.dependencies import get_asesor_actual, get_cargar_rutero, get_obtener_rutero_dia
+from src.api.dependencies import (
+    get_asesor_actual,
+    get_cargar_rutero,
+    get_eliminar_rutero_dia,
+    get_obtener_rutero_dia,
+)
 from src.api.templates_config import templates
 from src.application.use_cases.calcular_stats_rutero import calcular_stats, filtrar_clientes
 from src.application.use_cases.cargar_rutero import CargarRutero
+from src.application.use_cases.eliminar_rutero_dia import EliminarRuteroDia
 from src.application.use_cases.obtener_rutero_dia import ObtenerRuteroDia
 
 router = APIRouter(prefix="/rutero", tags=["rutero"])
@@ -80,3 +86,24 @@ async def stats_del_dia(
         "partials/stats_bar.html",
         {"stats": calcular_stats(clientes)},
     )
+
+
+@router.get("/resumen")
+async def resumen_rutero_dia(
+    fecha: date,
+    asesor: str = Depends(get_asesor_actual),
+    uc: EliminarRuteroDia = Depends(get_eliminar_rutero_dia),
+):
+    return JSONResponse(await uc.resumen(fecha, asesor))
+
+
+@router.delete("/eliminar")
+async def eliminar_rutero_dia(
+    fecha: date,
+    asesor: str = Depends(get_asesor_actual),
+    uc: EliminarRuteroDia = Depends(get_eliminar_rutero_dia),
+):
+    borrado = await uc.execute(fecha, asesor)
+    if not borrado:
+        raise HTTPException(status_code=404, detail="No hay rutero cargado para esta fecha")
+    return JSONResponse({"eliminado": True})

@@ -4,6 +4,7 @@ from fastapi import Request
 
 from src.application.use_cases.cargar_rutero import CargarRutero
 from src.application.use_cases.corregir_resultado import CorregirResultado
+from src.application.use_cases.eliminar_rutero_dia import EliminarRuteroDia
 from src.application.use_cases.exportar_reporte import ExportarReporte
 from src.application.use_cases.gestionar_notas_cliente import GestionarNotasCliente
 from src.application.use_cases.listar_asesores import ListarAsesores
@@ -55,6 +56,10 @@ def get_registrar_novedad() -> RegistrarNovedad:
 
 def get_corregir_resultado() -> CorregirResultado:
     return CorregirResultado(get_llamada_repo())
+
+
+def get_eliminar_rutero_dia() -> EliminarRuteroDia:
+    return EliminarRuteroDia(get_llamada_repo())
 
 
 def get_obtener_rutero_dia() -> ObtenerRuteroDia:

@@ -133,3 +133,14 @@ CREATE INDEX IF NOT EXISTS idx_rutero_dias_fecha_asesor ON rutero_dias(fecha, as
 ALTER TABLE rutero_clientes DROP CONSTRAINT IF EXISTS rutero_clientes_rutero_dia_id_cliente_id_key;
 ALTER TABLE rutero_clientes ADD CONSTRAINT rutero_clientes_rutero_dia_id_cliente_id_key
     UNIQUE (rutero_dia_id, cliente_id);
+
+-- ============================================================
+-- Eliminar rutero cargado: al borrar un rutero_dia (y en cascada sus
+-- rutero_clientes), las novedades de esos clientes NO deben perderse —
+-- son historial del cliente, no del rutero. CASCADE las borraría; con
+-- SET NULL la novedad sobrevive (queda sin rutero_cliente_id, pero
+-- conserva cliente_id, que es lo que usa el historial para listarlas).
+-- ============================================================
+ALTER TABLE novedades DROP CONSTRAINT IF EXISTS novedades_rutero_cliente_id_fkey;
+ALTER TABLE novedades ADD CONSTRAINT novedades_rutero_cliente_id_fkey
+    FOREIGN KEY (rutero_cliente_id) REFERENCES rutero_clientes(id) ON DELETE SET NULL;
