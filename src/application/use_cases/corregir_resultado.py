@@ -26,6 +26,7 @@ class CorregirResultado:
         estado_nuevo: EstadoLlamada,
         observacion: str,
         fecha: date,
+        asesor: str | None = None,
     ) -> None:
         if estado_nuevo not in ESTADOS_CORREGIBLES:
             raise ValueError("Solo se puede corregir a 'Contestó' o 'No contestó'")
@@ -47,5 +48,6 @@ class CorregirResultado:
             fecha=fecha,
             tipo=TipoNovedad.OTRO,
             observacion=texto,
+            asesor=asesor,
         )
         await self._llamada_repo.crear_novedad(novedad)

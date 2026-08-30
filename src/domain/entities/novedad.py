@@ -15,3 +15,4 @@ class Novedad:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     observacion: Optional[str] = None
     created_at: Optional[datetime] = None
+    asesor: Optional[str] = None

@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from src.api.dependencies import (
+    get_asesor_actual,
     get_corregir_resultado,
     get_obtener_datos_tarjeta_cliente,
     get_obtener_historial,
@@ -17,6 +18,7 @@ from src.application.use_cases.obtener_datos_tarjeta_cliente import ObtenerDatos
 from src.application.use_cases.obtener_historial import ObtenerHistorial
 from src.application.use_cases.registrar_llamada import RegistrarLlamada
 from src.application.use_cases.registrar_novedad import RegistrarNovedad
+from src.domain.servicios.fecha_colombia import hoy_colombia
 from src.domain.value_objects.estado_llamada import EstadoLlamada
 from src.domain.value_objects.tipo_novedad import TipoNovedad
 
@@ -67,6 +69,7 @@ async def registrar_novedad(
     request: Request,
     rutero_cliente_id: str,
     body: NovedadBody,
+    asesor: str = Depends(get_asesor_actual),
     uc: RegistrarNovedad = Depends(get_registrar_novedad),
     uc_tarjeta: ObtenerDatosTarjetaCliente = Depends(get_obtener_datos_tarjeta_cliente),
 ):
@@ -80,7 +83,8 @@ async def registrar_novedad(
             # fecha calendario real — si no, un rutero de un día distinto al
             # actual guarda la novedad bajo "hoy" y el reporte de ese día sale
             # vacío aunque la novedad sí se haya registrado.
-            fecha=body.fecha or date.today(),
+            fecha=body.fecha or hoy_colombia(),
+            asesor=asesor,
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -98,6 +102,7 @@ async def corregir_resultado(
     request: Request,
     rutero_cliente_id: str,
     body: CorregirResultadoBody,
+    asesor: str = Depends(get_asesor_actual),
     uc: CorregirResultado = Depends(get_corregir_resultado),
     uc_tarjeta: ObtenerDatosTarjetaCliente = Depends(get_obtener_datos_tarjeta_cliente),
 ):
@@ -110,7 +115,8 @@ async def corregir_resultado(
             cliente_id=body.cliente_id,
             estado_nuevo=body.estado_nuevo,
             observacion=body.observacion.strip(),
-            fecha=body.fecha or date.today(),
+            fecha=body.fecha or hoy_colombia(),
+            asesor=asesor,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

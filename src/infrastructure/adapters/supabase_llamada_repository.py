@@ -75,6 +75,30 @@ class SupabaseLlamadaRepository(LlamadaRepository):
             llamada.id = existing.data[0]["id"]
         return llamada
 
+    async def crear_llamadas_lote(self, llamadas: List[Llamada]) -> None:
+        if not llamadas:
+            return
+        payload = []
+        for llamada in llamadas:
+            row: dict = {
+                "rutero_dia_id": llamada.rutero_dia_id,
+                "cliente_id": llamada.cliente_id,
+                "estado": llamada.estado.value,
+            }
+            if llamada.posicion_cola is not None:
+                row["posicion_cola"] = llamada.posicion_cola
+            payload.append(row)
+        # ignore_duplicates=True: misma semántica que crear_llamada — si ya
+        # existe (rutero_dia_id, cliente_id) NO sobreescribe estado ni ningún
+        # campo, preserva lo ya registrado (BR-013). No se usan los ids
+        # devueltos (ver cargar_rutero.py), así que no hace falta resolver
+        # las filas en conflicto.
+        (
+            self._db.table("rutero_clientes")
+            .upsert(payload, on_conflict="rutero_dia_id,cliente_id", ignore_duplicates=True)
+            .execute()
+        )
+
     async def actualizar_estado(self, rutero_cliente_id: str, estado: EstadoLlamada) -> Llamada:
         result = (
             self._db.table("rutero_clientes")
@@ -174,6 +198,7 @@ class SupabaseLlamadaRepository(LlamadaRepository):
                     "fecha": str(novedad.fecha),
                     "tipo": novedad.tipo.value,
                     "observacion": novedad.observacion,
+                    "asesor": novedad.asesor,
                 }
             )
             .execute()

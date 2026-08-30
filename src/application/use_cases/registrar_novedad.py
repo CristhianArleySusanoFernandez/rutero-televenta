@@ -16,6 +16,7 @@ class RegistrarNovedad:
         tipo: TipoNovedad,
         observacion: str | None,
         fecha: date,
+        asesor: str | None = None,
     ) -> Novedad:
         novedad = Novedad(
             rutero_cliente_id=rutero_cliente_id,
@@ -23,6 +24,7 @@ class RegistrarNovedad:
             fecha=fecha,
             tipo=tipo,
             observacion=observacion,
+            asesor=asesor,
         )
         # No se toca el estado del rutero_cliente: 'estado' es solo el
         # resultado de la llamada (contestó/no contestó/etc). La novedad

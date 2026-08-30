@@ -18,6 +18,7 @@ from src.api.dependencies import (
 )
 from src.api.templates_config import templates
 from src.domain.ports.asesor_repository import AsesorRepository
+from src.domain.servicios.fecha_colombia import hoy_colombia
 from src.domain.value_objects.estado_llamada import EstadoLlamada
 from src.application.use_cases.obtener_cliente_especifico import ObtenerClienteEspecifico
 from src.application.use_cases.obtener_historial import ObtenerHistorial
@@ -101,6 +102,7 @@ async def vista_enfocada(
 @router.post("/saltar")
 async def saltar_cliente(
     body: SaltarBody,
+    asesor: str = Depends(get_asesor_actual),
     repo: SupabaseLlamadaRepository = Depends(get_llamada_repo),
 ):
     """
@@ -122,9 +124,10 @@ async def saltar_cliente(
         cliente_id=body.cliente_id,
         # Debe quedar con la fecha del rutero que se está trabajando, no la
         # fecha calendario real (mismo caso que /llamadas/.../novedad).
-        fecha=body.fecha or date.today(),
+        fecha=body.fecha or hoy_colombia(),
         tipo=tipo,
         observacion=body.motivo if tipo == TipoNovedad.OTRO else None,
+        asesor=asesor,
     )
     await repo.crear_novedad(novedad)
     await repo.actualizar_estado(body.rutero_cliente_id, EstadoLlamada.NO_CONTESTO)

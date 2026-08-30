@@ -73,6 +73,13 @@ ALTER TABLE rutero_clientes ADD COLUMN IF NOT EXISTS contador_intentos INTEGER D
 ALTER TABLE rutero_clientes ADD COLUMN IF NOT EXISTS reagendado_para TIMESTAMPTZ;
 ALTER TABLE rutero_clientes ADD COLUMN IF NOT EXISTS nota_llamada TEXT;
 
+-- Dashboard de novedades: asesor (denormalizado para no depender del join
+-- rutero_cliente_id -> rutero_dias, que se rompe si el rutero fue borrado)
+-- y anulación lógica sin borrar el registro.
+ALTER TABLE novedades ADD COLUMN IF NOT EXISTS asesor TEXT;
+ALTER TABLE novedades ADD COLUMN IF NOT EXISTS anulada BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE novedades ADD COLUMN IF NOT EXISTS anulada_motivo TEXT;
+
 -- Ampliar el CHECK de estado en rutero_clientes existente
 -- (Supabase no permite ALTER CHECK directamente; se recrea la constraint)
 ALTER TABLE rutero_clientes DROP CONSTRAINT IF EXISTS rutero_clientes_estado_check;
@@ -90,6 +97,7 @@ CREATE INDEX IF NOT EXISTS idx_rutero_clientes_cola     ON rutero_clientes(ruter
 CREATE INDEX IF NOT EXISTS idx_novedades_cliente        ON novedades(cliente_id);
 CREATE INDEX IF NOT EXISTS idx_novedades_fecha          ON novedades(fecha);
 CREATE INDEX IF NOT EXISTS idx_novedades_rutero_cliente ON novedades(rutero_cliente_id);
+CREATE INDEX IF NOT EXISTS idx_novedades_asesor_fecha    ON novedades(asesor, fecha);
 CREATE INDEX IF NOT EXISTS idx_notas_cliente            ON notas_cliente(cliente_id);
 
 -- ============================================================
