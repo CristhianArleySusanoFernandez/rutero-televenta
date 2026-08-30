@@ -24,6 +24,15 @@ class LlamadaRepository(ABC):
         ...
 
     @abstractmethod
+    async def crear_llamadas_lote(self, llamadas: List[Llamada]) -> None:
+        """
+        Upsert masivo de rutero_clientes (on_conflict=rutero_dia_id,cliente_id,
+        ignore_duplicates=True) — misma semántica que crear_llamada pero para
+        una lista completa: no pisa el progreso de filas ya existentes (BR-013).
+        """
+        ...
+
+    @abstractmethod
     async def actualizar_estado(self, rutero_cliente_id: str, estado: EstadoLlamada) -> Llamada:
         ...
 

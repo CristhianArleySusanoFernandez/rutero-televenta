@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 from supabase import Client
 
@@ -10,8 +10,8 @@ class SupabaseClienteRepository(ClienteRepository):
     def __init__(self, client: Client):
         self._db = client
 
-    async def upsert(self, cliente: Cliente) -> Cliente:
-        data = {
+    def _to_row(self, cliente: Cliente) -> dict:
+        return {
             "cod_cliente": cliente.cod_cliente,
             "nombre": cliente.nombre,
             "documento": cliente.documento,
@@ -22,6 +22,9 @@ class SupabaseClienteRepository(ClienteRepository):
             "dias_visita": cliente.dias_visita,
             "telefono": cliente.telefono,
         }
+
+    async def upsert(self, cliente: Cliente) -> Cliente:
+        data = self._to_row(cliente)
         result = (
             self._db.table("clientes")
             .upsert(data, on_conflict="cod_cliente")
@@ -29,6 +32,23 @@ class SupabaseClienteRepository(ClienteRepository):
         )
         row = result.data[0]
         return self._to_entity(row)
+
+    async def upsert_lote(self, clientes: List[Cliente]) -> dict[str, str]:
+        if not clientes:
+            return {}
+        data = [self._to_row(c) for c in clientes]
+        # Sin ignore_duplicates: merge por cod_cliente, igual que upsert()
+        # individual — PostgREST devuelve TODAS las filas (insertadas y
+        # actualizadas) porque ON CONFLICT DO UPDATE siempre retorna la fila.
+        result = (
+            self._db.table("clientes")
+            .upsert(data, on_conflict="cod_cliente")
+            .execute()
+        )
+        # cod_cliente viene TEXT en la base pero puede llegar numérico desde
+        # el Excel — se normaliza a str para que las claves del mapa calcen
+        # con las que use quien lo consulte.
+        return {str(row["cod_cliente"]): row["id"] for row in result.data}
 
     async def get_by_cod(self, cod_cliente: str) -> Optional[Cliente]:
         result = (

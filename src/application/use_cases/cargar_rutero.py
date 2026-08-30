@@ -68,15 +68,27 @@ class CargarRutero:
             fecha_dia = fecha_del_dia_en_semana(fecha, dia)
             rutero_dia_id = await self._llamada_repo.crear_rutero_dia(fecha_dia, usuario_id, asesor_televenta)
 
-            for posicion, cliente in enumerate(por_dia[dia], start=1):
-                cliente_guardado = await self._cliente_repo.upsert(cliente)
-                llamada = Llamada(
-                    rutero_dia_id=rutero_dia_id,
-                    cliente_id=cliente_guardado.id,
-                    posicion_cola=posicion,
+            clientes_del_dia = por_dia[dia]
+            mapa_id = await self._cliente_repo.upsert_lote(clientes_del_dia)
+
+            llamadas = []
+            for posicion, cliente in enumerate(clientes_del_dia, start=1):
+                cod = str(cliente.cod_cliente)
+                cliente_id = mapa_id.get(cod)
+                if cliente_id is None:
+                    raise RuntimeError(
+                        f"No se pudo resolver el id del cliente cod_cliente={cod!r} "
+                        f"tras el upsert por lotes (rutero_dia_id={rutero_dia_id})"
+                    )
+                llamadas.append(
+                    Llamada(
+                        rutero_dia_id=rutero_dia_id,
+                        cliente_id=cliente_id,
+                        posicion_cola=posicion,
+                    )
                 )
-                await self._llamada_repo.crear_llamada(llamada)
-                insertados += 1
+            await self._llamada_repo.crear_llamadas_lote(llamadas)
+            insertados += len(llamadas)
 
             dias_cargados.append({"fecha": str(fecha_dia), "clientes": len(por_dia[dia])})
 
