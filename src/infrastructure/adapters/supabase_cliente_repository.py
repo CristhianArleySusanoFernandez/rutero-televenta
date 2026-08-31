@@ -50,6 +50,27 @@ class SupabaseClienteRepository(ClienteRepository):
         # con las que use quien lo consulte.
         return {str(row["cod_cliente"]): row["id"] for row in result.data}
 
+    async def buscar(self, termino: str, limite: int = 50) -> List[Cliente]:
+        # Se quitan comas y paréntesis: son separadores de condición en la
+        # sintaxis .or_() de PostgREST y romperían el filtro si el término
+        # los trae (ej. teléfonos escritos "(123) 456").
+        termino_normalizado = " ".join(termino.split()).replace(",", "").replace("(", "").replace(")", "")
+        termino_telefono = termino_normalizado.replace(" ", "")
+        patron = f"%{termino_normalizado}%"
+        patron_telefono = f"%{termino_telefono}%"
+        result = (
+            self._db.table("clientes")
+            .select("*")
+            .or_(
+                f"nombre.ilike.{patron},"
+                f"razon_social.ilike.{patron},"
+                f"telefono.ilike.{patron_telefono}"
+            )
+            .limit(limite)
+            .execute()
+        )
+        return [self._to_entity(row) for row in (result.data or [])]
+
     async def get_by_cod(self, cod_cliente: str) -> Optional[Cliente]:
         result = (
             self._db.table("clientes")

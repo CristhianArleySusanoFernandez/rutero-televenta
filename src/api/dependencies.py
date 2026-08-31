@@ -2,6 +2,8 @@ from typing import Optional
 
 from fastapi import Request
 
+from src.application.use_cases.anular_novedad import AnularNovedad
+from src.application.use_cases.buscar_clientes import BuscarClientes
 from src.application.use_cases.cargar_rutero import CargarRutero
 from src.application.use_cases.corregir_resultado import CorregirResultado
 from src.application.use_cases.eliminar_rutero_dia import EliminarRuteroDia
@@ -9,8 +11,10 @@ from src.application.use_cases.exportar_reporte import ExportarReporte
 from src.application.use_cases.gestionar_notas_cliente import GestionarNotasCliente
 from src.application.use_cases.listar_asesores import ListarAsesores
 from src.application.use_cases.obtener_cliente_especifico import ObtenerClienteEspecifico
+from src.application.use_cases.obtener_dashboard_novedades import ObtenerDashboardNovedades
 from src.application.use_cases.obtener_datos_tarjeta_cliente import ObtenerDatosTarjetaCliente
 from src.application.use_cases.obtener_historial import ObtenerHistorial
+from src.application.use_cases.obtener_historial_cliente_asesor import ObtenerHistorialClienteAsesor
 from src.application.use_cases.obtener_rutero_dia import ObtenerRuteroDia
 from src.application.use_cases.obtener_siguiente_cliente import ObtenerSiguienteCliente
 from src.application.use_cases.ordenar_llamada_cliente import OrdenarLlamadaCliente
@@ -76,6 +80,22 @@ def get_obtener_datos_tarjeta_cliente() -> ObtenerDatosTarjetaCliente:
 
 def get_exportar_reporte() -> ExportarReporte:
     return ExportarReporte(get_llamada_repo())
+
+
+def get_obtener_dashboard_novedades() -> ObtenerDashboardNovedades:
+    return ObtenerDashboardNovedades(get_llamada_repo())
+
+
+def get_buscar_clientes() -> BuscarClientes:
+    return BuscarClientes(get_cliente_repo())
+
+
+def get_obtener_historial_cliente_asesor() -> ObtenerHistorialClienteAsesor:
+    return ObtenerHistorialClienteAsesor(get_llamada_repo())
+
+
+def get_anular_novedad() -> AnularNovedad:
+    return AnularNovedad(get_llamada_repo())
 
 
 def get_nota_repo() -> SupabaseNotaClienteRepository:

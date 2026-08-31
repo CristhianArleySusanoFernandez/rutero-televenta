@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.api.dependencies import ASESOR_COOKIE, get_asesor_actual, get_obtener_rutero_dia
-from src.api.routers import asesor, cola, llamadas, notas, reportes, rutero, telefono
+from src.api.routers import asesor, clientes, cola, dashboard, llamadas, notas, reportes, rutero, telefono
 from src.api.templates_config import templates
 from src.application.use_cases.calcular_stats_rutero import calcular_stats, filtrar_clientes
 from src.application.use_cases.obtener_rutero_dia import ObtenerRuteroDia
@@ -52,6 +52,8 @@ app.include_router(llamadas.router)
 app.include_router(notas.router)
 app.include_router(reportes.router)
 app.include_router(telefono.router)
+app.include_router(dashboard.router)
+app.include_router(clientes.router)
 
 
 @app.get("/", response_class=HTMLResponse)

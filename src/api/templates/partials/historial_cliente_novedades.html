@@ -1,0 +1,39 @@
+<div id="historial-novedades-{{ cliente_id }}">
+    {% if error %}
+    <p class="text-xs text-alerta bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-2">⚠ {{ error }}</p>
+    {% endif %}
+
+    {% if not novedades %}
+    <p class="text-xs text-gray-400 italic py-3">Este cliente no tiene novedades tuyas registradas.</p>
+    {% else %}
+    <div class="space-y-2">
+        {% for n in novedades %}
+        <div class="border rounded-lg px-3 py-2.5 text-xs {% if n.anulada %}bg-gray-50 border-gray-200 opacity-60{% else %}bg-white border-gray-200{% endif %}">
+            <div class="flex justify-between items-start gap-2">
+                <div class="flex-1">
+                    <span class="font-semibold text-gray-700">{{ n.tipo }}</span>
+                    {% if n.anulada %}
+                    <span class="ml-2 inline-block bg-gray-200 text-gray-500 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded">Anulada</span>
+                    {% endif %}
+                </div>
+                <span class="text-gray-400 whitespace-nowrap">{{ n.fecha }}</span>
+            </div>
+            {% if n.observacion %}
+            <p class="text-gray-500 mt-1">{{ n.observacion }}</p>
+            {% endif %}
+            {% if n.anulada and n.anulada_motivo %}
+            <p class="text-gray-400 italic mt-1">Motivo de anulación: {{ n.anulada_motivo }}</p>
+            {% endif %}
+            {% if not n.anulada %}
+            <div class="mt-2 text-right">
+                <button
+                    class="text-[11px] text-orange-600 hover:text-orange-800 font-medium underline"
+                    onclick="pedirAnulacion('{{ n.id }}', '{{ cliente_id }}', '{{ n.tipo|e }}', '{{ n.fecha }}')"
+                >Anular esta novedad</button>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>

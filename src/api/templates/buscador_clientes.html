@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Buscar cliente — Rutero Televenta{% endblock %}
+
+{% block content %}
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+    <h1 class="text-xl font-bold text-marca mb-4">🔍 Buscar cliente</h1>
+    <p class="text-xs text-gray-500 mb-4">
+        Busca por nombre, razón social o teléfono. Solo verás tu propio historial de
+        novedades sobre el cliente encontrado — el buscador puede mostrar clientes de
+        otras asesoras, pero no sus novedades.
+    </p>
+
+    <input
+        type="text"
+        id="input-busqueda"
+        placeholder="Nombre, empresa o teléfono (mínimo 3 caracteres)..."
+        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cian mb-4"
+        hx-get="/clientes/buscar"
+        hx-trigger="input changed delay:400ms, search"
+        hx-target="#resultados-clientes-wrap"
+        hx-include="this"
+        name="q"
+    >
+
+    <div id="resultados-clientes-wrap">
+        <p class="text-xs text-gray-400 italic py-3">Escribe un nombre, razón social o teléfono para buscar.</p>
+    </div>
+</div>
+
+<div id="panel-historial" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <h2 class="text-lg font-bold text-marca mb-1">📋 Historial de <span id="nombre-cliente-seleccionado"></span></h2>
+    <p class="text-xs text-gray-400 mb-4">Solo se muestran tus propias novedades sobre este cliente.</p>
+    <div id="historial-novedades-wrap" hx-target="this" hx-swap="innerHTML">
+        <p class="text-xs text-gray-400 italic py-3">Cargando...</p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function seleccionarCliente(clienteId, nombre) {
+    document.getElementById('panel-historial').classList.remove('hidden');
+    document.getElementById('nombre-cliente-seleccionado').textContent = nombre;
+    document.getElementById('historial-novedades-wrap').setAttribute('data-cliente-id', clienteId);
+    htmx.ajax('GET', '/clientes/' + clienteId + '/historial', { target: '#historial-novedades-wrap' });
+    document.getElementById('panel-historial').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function pedirAnulacion(novedadId, clienteId, tipo, fecha) {
+    const msg = `¿Anular esta novedad?\n\nTipo: ${tipo}\nFecha: ${fecha}\n\nNo se borra, queda marcada como anulada y deja de contar en el dashboard.`;
+    if (!confirm(msg)) return;
+
+    const motivo = prompt('Motivo de la anulación (obligatorio):');
+    if (motivo === null) return;
+    if (!motivo.trim()) {
+        alert('El motivo es obligatorio para anular una novedad.');
+        return;
+    }
+
+    const resp = await fetch(`/clientes/novedades/${novedadId}/anular?cliente_id=${encodeURIComponent(clienteId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ motivo: motivo.trim() }),
+    });
+    const html = await resp.text();
+    document.getElementById('historial-novedades-wrap').innerHTML = html;
+}
+</script>
+{% endblock %}

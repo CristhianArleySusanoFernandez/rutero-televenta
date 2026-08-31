@@ -7,6 +7,12 @@ from src.domain.value_objects.tipo_novedad import TipoNovedad
 
 ESTADOS_CORREGIBLES = {EstadoLlamada.CONTESTO, EstadoLlamada.NO_CONTESTO}
 
+# Prefijo con el que se guarda toda corrección de resultado en `observacion`.
+# Usado también por el dashboard de novedades para excluir estas filas de
+# auditoría del conteo de novedades comerciales — si se cambia aquí, el
+# filtro del dashboard cambia con él (no hay dos copias del literal).
+PREFIJO_CORRECCION = "[Corrección"
+
 
 class CorregirResultado:
     """
@@ -41,7 +47,7 @@ class CorregirResultado:
         await self._llamada_repo.actualizar_estado(rutero_cliente_id, estado_nuevo)
 
         hora = datetime.now().strftime("%d/%m %H:%M")
-        texto = f"[Corrección {hora}] {estado_actual.value} → {estado_nuevo.value}. {observacion}"
+        texto = f"{PREFIJO_CORRECCION} {hora}] {estado_actual.value} → {estado_nuevo.value}. {observacion}"
         novedad = Novedad(
             rutero_cliente_id=rutero_cliente_id,
             cliente_id=cliente_id,

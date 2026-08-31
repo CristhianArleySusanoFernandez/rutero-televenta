@@ -233,6 +233,7 @@ class SupabaseLlamadaRepository(LlamadaRepository):
             self._db.table("novedades")
             .select("rutero_cliente_id, tipo, observacion, created_at")
             .in_("rutero_cliente_id", rc_ids)
+            .eq("anulada", False)
             .order("created_at", desc=True)
             .execute()
         )
@@ -281,6 +282,32 @@ class SupabaseLlamadaRepository(LlamadaRepository):
         orden = {"Novedad": 0, "Saltado": 1, "No contestó": 2}
         registros.sort(key=lambda r: (orden[r["estado_reporte"]], r["nombre"] or ""))
         return registros
+
+    async def get_novedades_rango(
+        self, asesor: str, fecha_desde: date, fecha_hasta: date
+    ) -> List[dict]:
+        result = (
+            self._db.table("novedades")
+            .select("tipo, observacion, cliente_id, fecha")
+            .eq("asesor", asesor)
+            .eq("anulada", False)
+            .gte("fecha", str(fecha_desde))
+            .lte("fecha", str(fecha_hasta))
+            .execute()
+        )
+        return result.data or []
+
+    async def contar_novedades_sin_asesor(self, fecha_desde: date, fecha_hasta: date) -> int:
+        result = (
+            self._db.table("novedades")
+            .select("id", count="exact")
+            .is_("asesor", "null")
+            .eq("anulada", False)
+            .gte("fecha", str(fecha_desde))
+            .lte("fecha", str(fecha_hasta))
+            .execute()
+        )
+        return result.count or 0
 
     async def get_historial_novedades(self, cliente_id: str) -> List[Novedad]:
         result = (
@@ -591,6 +618,33 @@ class SupabaseLlamadaRepository(LlamadaRepository):
             if r["estado"] in (EstadoLlamada.CONTESTO.value, EstadoLlamada.NO_CONTESTO.value)
         )
         return {"total": len(rows), "ya_llamados": ya_llamados}
+
+    async def get_historial_novedades_por_asesor(self, cliente_id: str, asesor: str) -> List[dict]:
+        result = (
+            self._db.table("novedades")
+            .select("id, fecha, tipo, observacion, anulada, anulada_motivo, created_at")
+            .eq("cliente_id", cliente_id)
+            .eq("asesor", asesor)
+            .order("created_at", desc=True)
+            .execute()
+        )
+        return result.data or []
+
+    async def get_novedad_por_id(self, novedad_id: str) -> Optional[dict]:
+        result = (
+            self._db.table("novedades")
+            .select("*")
+            .eq("id", novedad_id)
+            .limit(1)
+            .execute()
+        )
+        return result.data[0] if result.data else None
+
+    async def anular_novedad(self, novedad_id: str, motivo: str) -> None:
+        self._db.table("novedades").update({
+            "anulada": True,
+            "anulada_motivo": motivo,
+        }).eq("id", novedad_id).execute()
 
     async def eliminar_rutero_dia(self, fecha: date, asesor: str) -> bool:
         rutero_dia_id = await self.get_rutero_dia_id(fecha, asesor)

@@ -18,6 +18,17 @@ class ClienteRepository(ABC):
         ...
 
     @abstractmethod
+    async def buscar(self, termino: str, limite: int = 50) -> List[Cliente]:
+        """
+        Busca clientes cuyo nombre, razón social o teléfono contengan el
+        término (parcial, insensible a mayúsculas). Tabla global, no
+        particionada por asesor — la búsqueda puede devolver clientes de
+        cualquier asesora; el aislamiento (BR-012) se aplica después, al
+        leer el historial de novedades, no aquí.
+        """
+        ...
+
+    @abstractmethod
     async def get_by_cod(self, cod_cliente: str) -> Optional[Cliente]:
         ...
 

@@ -1,0 +1,25 @@
+<div id="resultados-clientes">
+    {% if muy_corto %}
+    <p class="text-xs text-gray-400 italic py-3">Escribe al menos 3 caracteres para buscar.</p>
+    {% elif not termino %}
+    <p class="text-xs text-gray-400 italic py-3">Escribe un nombre, razón social o teléfono para buscar.</p>
+    {% elif not clientes %}
+    <p class="text-xs text-gray-400 italic py-3">No se encontraron clientes para "{{ termino }}".</p>
+    {% else %}
+    <div class="space-y-1.5">
+        {% for c in clientes %}
+        <button
+            type="button"
+            onclick="seleccionarCliente('{{ c.id }}', '{{ (c.nombre or '')|e }}')"
+            class="w-full text-left bg-gray-50 hover:bg-marca-suave border border-gray-200 rounded-lg px-4 py-2.5 transition"
+        >
+            <p class="text-sm font-semibold text-gray-700">{{ c.nombre }}</p>
+            <p class="text-xs text-gray-500">
+                {% if c.razon_social %}{{ c.razon_social }} · {% endif %}
+                {{ c.telefono or "sin teléfono" }}
+            </p>
+        </button>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>

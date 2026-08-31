@@ -11,19 +11,28 @@
 
 <!-- Navbar -->
 <nav class="bg-marca shadow-md sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-        <div class="flex items-baseline gap-3 min-w-0">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+        <a href="/" class="flex items-baseline gap-3 min-w-0 hover:opacity-90 transition">
             <span class="text-white text-2xl font-bold tracking-tight whitespace-nowrap">📋 Rutero Televenta</span>
             <span class="text-cian text-sm font-medium truncate hidden sm:inline">Distribuciones Santiago De Tunja S.A.S</span>
-        </div>
-        <div class="flex items-center gap-4">
+        </a>
+        <div class="flex items-center gap-4 flex-wrap justify-end">
             <span class="text-white/80 text-sm font-medium whitespace-nowrap" id="fecha-hoy">
                 {% block fecha %}{% endblock %}
             </span>
             {% set asesor_actual = request.cookies.get('asesor') %}
             {% if asesor_actual %}
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 flex-wrap justify-end">
                 <span class="text-white text-sm font-medium whitespace-nowrap">👤 {{ asesor_actual }}</span>
+                <a href="/" class="text-cian text-xs underline hover:text-white whitespace-nowrap">
+                    🏠 Inicio
+                </a>
+                <a href="/dashboard/novedades" class="text-cian text-xs underline hover:text-white whitespace-nowrap">
+                    📊 Dashboard
+                </a>
+                <a href="/clientes/buscador" class="text-cian text-xs underline hover:text-white whitespace-nowrap">
+                    🔍 Buscar cliente
+                </a>
                 <a href="/asesor/telefono" class="text-cian text-xs underline hover:text-white whitespace-nowrap">
                     Mi teléfono
                 </a>

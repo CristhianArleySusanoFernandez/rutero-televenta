@@ -1,6 +1,7 @@
 {% set rc_id = cliente.rutero_cliente_id %}
 {% set cli_id = cliente.cliente_id %}
 {% set tel_ok = telefono_valido(cliente.telefono) %}
+{% set link_whatsapp = link_whatsapp_no_contesto(cliente.telefono, cliente.nombre) %}
 
 <div id="vista-enfocada" class="max-w-lg mx-auto space-y-4">
 
@@ -149,6 +150,15 @@
                 ✗ No contestó
             </button>
         </div>
+        {% if link_whatsapp %}
+        <!-- Sólo un enlace: no registra novedad ni cambia estado. Útil justo
+             antes o después de marcar "No contestó", mientras el cliente
+             sigue en pantalla. -->
+        <a href="{{ link_whatsapp }}" target="_blank" rel="noopener"
+           class="block text-center bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 font-semibold py-2 rounded-xl transition text-sm">
+            💬 Avisar por WhatsApp que no se pudo contactar
+        </a>
+        {% endif %}
         {% else %}
         <!-- Teléfono inválido: los botones normales quedan deshabilitados -->
         <div class="grid grid-cols-2 gap-3 opacity-30 pointer-events-none select-none">

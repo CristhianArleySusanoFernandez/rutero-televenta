@@ -142,6 +142,53 @@ class LlamadaRepository(ABC):
         ...
 
     @abstractmethod
+    async def get_novedades_rango(
+        self, asesor: str, fecha_desde: date, fecha_hasta: date
+    ) -> List[dict]:
+        """
+        Novedades de ese asesor con fecha entre fecha_desde y fecha_hasta
+        (ambas inclusive), excluyendo anuladas. Cada dict trae al menos
+        'tipo', 'observacion', 'cliente_id', 'fecha'.
+        """
+        ...
+
+    @abstractmethod
+    async def contar_novedades_sin_asesor(self, fecha_desde: date, fecha_hasta: date) -> int:
+        """
+        Conteo de novedades sin asesor asignado (asesor IS NULL, no anuladas)
+        en el rango de fechas — filas históricas previas a la migración que
+        pobló 'asesor'. No se puede saber de quién son, solo cuántas hay.
+        """
+        ...
+
+    @abstractmethod
+    async def get_historial_novedades_por_asesor(self, cliente_id: str, asesor: str) -> List[dict]:
+        """
+        Historial de novedades de ese cliente, restringido a las que
+        pertenecen a `asesor` (BR-012) — incluye anuladas (se muestran
+        marcadas, no se ocultan). Cada dict trae al menos 'id', 'fecha',
+        'tipo', 'observacion', 'anulada', 'anulada_motivo', 'created_at'.
+        """
+        ...
+
+    @abstractmethod
+    async def get_novedad_por_id(self, novedad_id: str) -> Optional[dict]:
+        """
+        Devuelve la novedad cruda (dict, incluye 'asesor' y 'anulada') o
+        None si no existe. Usado para verificar propiedad antes de anular.
+        """
+        ...
+
+    @abstractmethod
+    async def anular_novedad(self, novedad_id: str, motivo: str) -> None:
+        """
+        Marca anulada=true y guarda anulada_motivo. No borra la fila.
+        No verifica propiedad ni si ya estaba anulada — eso es
+        responsabilidad del caso de uso, que ya consultó get_novedad_por_id.
+        """
+        ...
+
+    @abstractmethod
     async def eliminar_rutero_dia(self, fecha: date, asesor: str) -> bool:
         """
         Borra el rutero_dia de esa fecha+asesor (cascada a rutero_clientes;

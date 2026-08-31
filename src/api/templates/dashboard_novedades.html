@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard de novedades — Rutero Televenta{% endblock %}
+
+{% block fecha %}{{ fecha.strftime('%A %d de %B de %Y') | capitalize }}{% endblock %}
+
+{% block content %}
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+    <h1 class="text-xl font-bold text-marca mb-4">📊 Dashboard de novedades</h1>
+
+    <!-- Selector de período -->
+    <div class="flex flex-wrap items-center gap-3 mb-4">
+        <div class="flex gap-2">
+            {% for p, etiqueta in [('dia', '📅 Día'), ('semana', '🗓️ Semana'), ('mes', '📆 Mes')] %}
+            <a href="/dashboard/novedades?periodo={{ p }}&fecha={{ fecha.isoformat() }}"
+               class="px-4 py-2 rounded-lg text-sm font-semibold transition {% if periodo == p %}bg-marca text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                {{ etiqueta }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <form method="get" action="/dashboard/novedades" class="flex items-center gap-2 text-sm text-gray-600 ml-auto">
+            <input type="hidden" name="periodo" value="{{ periodo }}">
+            <label for="selector-fecha" class="font-medium whitespace-nowrap">Fecha de referencia:</label>
+            <input
+                type="date"
+                id="selector-fecha"
+                name="fecha"
+                value="{{ fecha.isoformat() }}"
+                onchange="this.form.submit()"
+                class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-cian"
+            >
+        </form>
+    </div>
+
+    <!-- Rango mostrado en claro -->
+    <p class="text-sm text-gray-500 mb-6">
+        {% if resultado.fecha_desde == resultado.fecha_hasta %}
+        Novedades del <span class="font-semibold text-gray-700">{{ resultado.fecha_desde.strftime('%d/%m/%Y') }}</span>
+        {% else %}
+        Novedades del <span class="font-semibold text-gray-700">{{ resultado.fecha_desde.strftime('%d/%m/%Y') }}</span>
+        al <span class="font-semibold text-gray-700">{{ resultado.fecha_hasta.strftime('%d/%m/%Y') }}</span>
+        {% endif %}
+    </p>
+
+    <!-- Total -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div class="text-center bg-marca-suave rounded-lg py-4">
+            <p class="text-3xl font-bold text-marca">{{ resultado.total }}</p>
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Novedades registradas</p>
+        </div>
+    </div>
+
+    <!-- Conteo por tipo -->
+    {% if resultado.por_tipo %}
+    <div class="space-y-2">
+        {% for tipo, cantidad in resultado.por_tipo %}
+        <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5">
+            <span class="text-sm font-medium text-gray-700">{{ tipo }}</span>
+            <span class="text-sm font-bold text-marca">{{ cantidad }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-400 italic py-6 text-center">No hay novedades registradas en este período.</p>
+    {% endif %}
+
+    <!-- Avisos discretos -->
+    {% if resultado.correcciones_excluidas > 0 %}
+    <p class="text-xs text-gray-400 mt-4">
+        Se excluyeron {{ resultado.correcciones_excluidas }} corrección(es) de resultado del conteo (son auditoría, no novedades comerciales).
+    </p>
+    {% endif %}
+
+    {% if resultado.sin_asesor > 0 %}
+    <p class="text-xs text-orange-500 mt-2">
+        ⚠️ Hay {{ resultado.sin_asesor }} novedad(es) sin asesor asignado en este período (registradas antes de esta funcionalidad) — no aparecen en el conteo de arriba.
+    </p>
+    {% endif %}
+</div>
+
+{% endblock %}
