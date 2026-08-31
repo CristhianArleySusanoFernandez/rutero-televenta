@@ -50,6 +50,21 @@
     </div>
     {% endif %}
 
+    <!-- Aviso del formato nuevo de Excel: observación de campo y teléfono
+         alterno. Solo informativos, no cambian el flujo de la llamada. -->
+    {% if cliente.observacion_excel %}
+    <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+        <p class="text-xs font-bold text-blue-800 uppercase tracking-wide mb-1">📋 Observación del último Excel</p>
+        <p class="text-sm text-blue-900">{{ cliente.observacion_excel }}</p>
+    </div>
+    {% endif %}
+    {% if cliente.novedad_excel %}
+    <div class="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+        <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">📝 Novedad del Excel</p>
+        <p class="text-sm text-gray-700">{{ cliente.novedad_excel }}</p>
+    </div>
+    {% endif %}
+
     <!-- Aviso teléfono inválido (error real → rojo ladrillo de alerta) -->
     {% if not tel_ok %}
     <div class="bg-red-50 border-2 border-alerta rounded-xl px-4 py-3 flex items-start gap-3">
@@ -176,6 +191,10 @@
         </div>
         <!-- Avisos del estado de la llamada (marcando / errores del teléfono) -->
         <div id="slot-aviso-llamada"></div>
+        {% if cliente.telefono2 %}
+        <!-- Solo se muestra: NO se integra con la marcación. -->
+        <p class="text-xs text-gray-400 -mt-1">☎️ Teléfono alterno: {{ cliente.telefono2 }}</p>
+        {% endif %}
         {% else %}
         <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
             <span class="text-2xl">📵</span>

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Mi código de asesora — Rutero Televenta{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto mt-10 bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+    <h1 class="text-2xl font-bold text-marca mb-1">Mi código de asesora</h1>
+    <p class="text-gray-500 text-sm mb-6">
+        El código de "COD ASESOR" del archivo nuevo (es un código de PUESTO,
+        no de persona: si {{ asesor }} rota de puesto, cámbialo aquí). Se usa
+        para cargar solo tus clientes al subir el rutero — si el archivo trae
+        varios códigos, se te pedirá configurarlo antes de cargar.
+    </p>
+
+    <form method="post" action="/asesor/codigo" class="space-y-3">
+        <label class="block text-sm font-medium text-gray-600">Código de asesora</label>
+        <input
+            type="text"
+            name="codigo_asesor"
+            required
+            value="{{ codigo_actual or '' }}"
+            placeholder="Ej: 10964"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cian"
+        >
+        <button
+            type="submit"
+            class="w-full bg-marca text-white font-semibold py-2 rounded-lg hover:bg-marca-hover transition"
+        >
+            Guardar
+        </button>
+    </form>
+</div>
+{% endblock %}

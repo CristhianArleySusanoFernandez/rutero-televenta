@@ -426,6 +426,7 @@ class SupabaseLlamadaRepository(LlamadaRepository):
         notas: list = []
         franja: dict = _datos_franja({})
         pedidos: dict = _datos_pedidos([])
+        datos_cliente_extra: dict = {}
         if cli_id:
             n = (
                 self._db.table("notas_cliente")
@@ -436,17 +437,19 @@ class SupabaseLlamadaRepository(LlamadaRepository):
             )
             notas = n.data or []
 
-            # get_siguiente_en_cola no trae franja_desde/franja_hasta en su
-            # select (no se toca esa función, ver restricción de la tarea)
-            # — se resuelve aquí con una consulta aparte, igual que notas.
+            # get_siguiente_en_cola no trae franja_desde/franja_hasta ni los
+            # campos del formato nuevo de Excel en su select (no se toca esa
+            # función, ver restricción de la tarea) — se resuelve aquí con
+            # una consulta aparte, igual que notas.
             f = (
                 self._db.table("clientes")
-                .select("franja_desde, franja_hasta")
+                .select("franja_desde, franja_hasta, observacion_excel, novedad_excel, telefono2")
                 .eq("id", cli_id)
                 .limit(1)
                 .execute()
             )
-            franja = _datos_franja(f.data[0]) if f.data else _datos_franja({})
+            datos_cliente_extra = f.data[0] if f.data else {}
+            franja = _datos_franja(datos_cliente_extra)
 
             # Últimos 3 pedidos del cliente, misma técnica de consulta
             # aparte (no se toca get_siguiente_en_cola).
@@ -489,6 +492,9 @@ class SupabaseLlamadaRepository(LlamadaRepository):
             "viene_de_reagendamiento": viene_de_reagendamiento,
             "minutos_reagendado": minutos_reagendado,
             "reagendado_para": reagendado_para,
+            "observacion_excel": datos_cliente_extra.get("observacion_excel"),
+            "novedad_excel": datos_cliente_extra.get("novedad_excel"),
+            "telefono2": datos_cliente_extra.get("telefono2"),
             **franja,
             **pedidos,
         }

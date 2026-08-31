@@ -24,3 +24,12 @@ class AsesorRepository(ABC):
     @abstractmethod
     async def set_telefono_id(self, nombre: str, telefono_id: str) -> None:
         ...
+
+    @abstractmethod
+    async def get_codigo_asesor(self, nombre: str) -> Optional[str]:
+        """Código de asesora (puesto) que la asesora tiene configurado, si alguno."""
+        ...
+
+    @abstractmethod
+    async def set_codigo_asesor(self, nombre: str, codigo_asesor: str) -> None:
+        ...

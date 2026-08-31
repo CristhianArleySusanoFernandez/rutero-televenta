@@ -757,9 +757,18 @@ document.getElementById('file-input').addEventListener('change', function() {
     fetch('/rutero/cargar', { method: 'POST', body: formData })
         .then(r => {
             if (!r.ok) return r.json().then(e => { throw new Error(e.detail); });
-            return r.text();
+            return r.json();
         })
-        .then(() => { window.location.href = '/?fecha=' + fecha; })
+        .then(resultado => {
+            if (resultado && typeof resultado.clientes_cargados === 'number') {
+                let msg = `✓ ${resultado.clientes_cargados} clientes cargados.`;
+                if (resultado.descartados_otro_asesor) {
+                    msg += ` ${resultado.descartados_otro_asesor} filas descartadas por ser de otro código de asesora.`;
+                }
+                alert(msg);
+            }
+            window.location.href = '/?fecha=' + fecha;
+        })
         .catch(err => alert('Error al cargar el rutero: ' + err.message))
         .finally(() => { document.getElementById('cargando').style.opacity = '0'; this.value = ''; });
 });

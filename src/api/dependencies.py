@@ -54,7 +54,7 @@ def get_parser() -> ExcelRuteroParser:
 
 
 def get_cargar_rutero() -> CargarRutero:
-    return CargarRutero(get_parser(), get_cliente_repo(), get_llamada_repo())
+    return CargarRutero(get_parser(), get_cliente_repo(), get_llamada_repo(), get_asesor_repo())
 
 
 def get_registrar_llamada() -> RegistrarLlamada:

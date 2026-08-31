@@ -40,3 +40,16 @@ class SupabaseAsesorRepository(AsesorRepository):
 
     async def set_telefono_id(self, nombre: str, telefono_id: str) -> None:
         self._db.table("asesores").upsert({"nombre": nombre, "telefono_id": telefono_id}).execute()
+
+    async def get_codigo_asesor(self, nombre: str) -> Optional[str]:
+        result = (
+            self._db.table("asesores")
+            .select("codigo_asesor")
+            .eq("nombre", nombre)
+            .limit(1)
+            .execute()
+        )
+        return result.data[0]["codigo_asesor"] if result.data else None
+
+    async def set_codigo_asesor(self, nombre: str, codigo_asesor: str) -> None:
+        self._db.table("asesores").upsert({"nombre": nombre, "codigo_asesor": codigo_asesor}).execute()

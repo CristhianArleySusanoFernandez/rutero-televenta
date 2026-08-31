@@ -34,6 +34,11 @@ class SupabaseClienteRepository(ClienteRepository):
             "telefono": cliente.telefono,
             "novedad_excel": cliente.novedad_excel,
             "asesor_campo": cliente.asesor_campo,
+            "email": cliente.email,
+            "segmento": cliente.segmento,
+            "telefono2": cliente.telefono2,
+            "observacion_excel": cliente.observacion_excel,
+            "dato_a_corregir": cliente.dato_a_corregir,
         }
 
     async def upsert(self, cliente: Cliente) -> Cliente:
@@ -144,6 +149,11 @@ class SupabaseClienteRepository(ClienteRepository):
             telefono=row.get("telefono"),
             novedad_excel=row.get("novedad_excel"),
             asesor_campo=row.get("asesor_campo"),
+            email=row.get("email"),
+            segmento=row.get("segmento"),
+            telefono2=row.get("telefono2"),
+            observacion_excel=row.get("observacion_excel"),
+            dato_a_corregir=row.get("dato_a_corregir"),
             franja_desde=_parsear_hora(row.get("franja_desde")),
             franja_hasta=_parsear_hora(row.get("franja_hasta")),
         )

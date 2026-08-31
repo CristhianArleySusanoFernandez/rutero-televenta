@@ -76,3 +76,27 @@ async def guardar_telefono(
 ):
     await asesor_repo.set_telefono_id(asesor, telefono_id.strip())
     return RedirectResponse("/", status_code=303)
+
+
+@router.get("/codigo", response_class=HTMLResponse)
+async def pantalla_codigo_asesor(
+    request: Request,
+    asesor: str = Depends(get_asesor_actual),
+    asesor_repo: AsesorRepository = Depends(get_asesor_repo),
+):
+    codigo_actual = await asesor_repo.get_codigo_asesor(asesor)
+    return templates.TemplateResponse(
+        request,
+        "configurar_codigo_asesor.html",
+        {"asesor": asesor, "codigo_actual": codigo_actual},
+    )
+
+
+@router.post("/codigo")
+async def guardar_codigo_asesor(
+    codigo_asesor: str = Form(...),
+    asesor: str = Depends(get_asesor_actual),
+    asesor_repo: AsesorRepository = Depends(get_asesor_repo),
+):
+    await asesor_repo.set_codigo_asesor(asesor, codigo_asesor.strip())
+    return RedirectResponse("/", status_code=303)

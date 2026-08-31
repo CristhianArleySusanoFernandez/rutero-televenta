@@ -113,6 +113,16 @@ ALTER TABLE clientes ADD COLUMN IF NOT EXISTS asesor_campo TEXT;
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS franja_desde TIME;
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS franja_hasta TIME;
 
+-- Columnas del formato nuevo de rutero (ACTUALIZACION_DATOS_TV_*.xlsx).
+-- Vienen del Excel: se sobrescriben en cada carga (opción A), igual que
+-- el resto de _to_row(). telefono2 solo se guarda y se muestra, NO se
+-- integra con la marcación.
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS segmento TEXT;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS telefono2 TEXT;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS observacion_excel TEXT;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS dato_a_corregir TEXT;
+
 -- Ampliar el CHECK de estado en rutero_clientes existente
 -- (Supabase no permite ALTER CHECK directamente; se recrea la constraint)
 ALTER TABLE rutero_clientes DROP CONSTRAINT IF EXISTS rutero_clientes_estado_check;
@@ -160,6 +170,12 @@ CREATE TABLE IF NOT EXISTS asesores (
     telefono_id TEXT,
     created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Código de asesora (puesto, no persona): las televendedoras rotan de
+-- puesto pero el código (ej. 10964, 10991) se mantiene. Se usa para
+-- filtrar, al cargar el formato nuevo de rutero, solo las filas que
+-- correspondan a la asesora que lo sube.
+ALTER TABLE asesores ADD COLUMN IF NOT EXISTS codigo_asesor TEXT;
 
 -- rutero_dias pasa de "una fila por fecha" a "una fila por (fecha, asesor)"
 ALTER TABLE rutero_dias DROP CONSTRAINT IF EXISTS rutero_dias_fecha_key;
