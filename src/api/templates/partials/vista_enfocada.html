@@ -205,6 +205,15 @@
             {% endif %}
         </div>
 
+        <!-- Corregir datos del cliente: solo un enlace al buscador, no toca
+             la cola ni ningún estado de esta pantalla. -->
+        <div class="flex justify-end">
+            <a href="/clientes/buscador?cliente_id={{ cli_id }}&nombre={{ cliente.nombre|urlencode }}"
+               class="text-xs text-gray-400 hover:text-marca underline">
+                ✏️ Corregir datos de este cliente
+            </a>
+        </div>
+
         <!-- Botón Saltar genérico (disponible siempre, secundario cuando tel es válido) -->
         {% if tel_ok %}
         <div class="flex justify-end">

@@ -6,7 +6,9 @@ from src.application.use_cases.anular_novedad import AnularNovedad
 from src.application.use_cases.buscar_clientes import BuscarClientes
 from src.application.use_cases.cargar_rutero import CargarRutero
 from src.application.use_cases.corregir_resultado import CorregirResultado
+from src.application.use_cases.editar_cliente import EditarCliente
 from src.application.use_cases.eliminar_rutero_dia import EliminarRuteroDia
+from src.application.use_cases.exportar_rutero_excel import ExportarRuteroExcel
 from src.application.use_cases.exportar_reporte import ExportarReporte
 from src.application.use_cases.gestionar_notas_cliente import GestionarNotasCliente
 from src.application.use_cases.listar_asesores import ListarAsesores
@@ -96,6 +98,14 @@ def get_obtener_historial_cliente_asesor() -> ObtenerHistorialClienteAsesor:
 
 def get_anular_novedad() -> AnularNovedad:
     return AnularNovedad(get_llamada_repo())
+
+
+def get_editar_cliente() -> EditarCliente:
+    return EditarCliente(get_cliente_repo())
+
+
+def get_exportar_rutero_excel() -> ExportarRuteroExcel:
+    return ExportarRuteroExcel(get_llamada_repo())
 
 
 def get_nota_repo() -> SupabaseNotaClienteRepository:

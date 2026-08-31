@@ -189,6 +189,18 @@ class LlamadaRepository(ABC):
         ...
 
     @abstractmethod
+    async def get_clientes_semana(self, fecha_desde: date, fecha_hasta: date, asesor: str) -> List[dict]:
+        """
+        Clientes de los rutero_dias de ese asesor entre fecha_desde y
+        fecha_hasta (ambas inclusive), para exportar el rutero completo
+        (no la tabla `clientes` entera, que es global). Un cliente que
+        aparece en varios días de la semana (BR-011, sin día válido) sale
+        UNA sola vez. Cada dict trae los campos del cliente más
+        'usuario_id' (de rutero_dias, el mismo para toda la semana).
+        """
+        ...
+
+    @abstractmethod
     async def eliminar_rutero_dia(self, fecha: date, asesor: str) -> bool:
         """
         Borra el rutero_dia de esa fecha+asesor (cascada a rutero_clientes;

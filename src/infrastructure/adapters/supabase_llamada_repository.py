@@ -646,6 +646,47 @@ class SupabaseLlamadaRepository(LlamadaRepository):
             "anulada_motivo": motivo,
         }).eq("id", novedad_id).execute()
 
+    async def get_clientes_semana(self, fecha_desde: date, fecha_hasta: date, asesor: str) -> List[dict]:
+        rd_result = (
+            self._db.table("rutero_dias")
+            .select("id, usuario_id")
+            .gte("fecha", str(fecha_desde))
+            .lte("fecha", str(fecha_hasta))
+            .eq("asesor", asesor)
+            .execute()
+        )
+        rutero_dias = rd_result.data or []
+        if not rutero_dias:
+            return []
+
+        usuario_por_rutero_dia = {rd["id"]: rd.get("usuario_id") for rd in rutero_dias}
+        rutero_dia_ids = list(usuario_por_rutero_dia.keys())
+
+        rc_result = (
+            self._db.table("rutero_clientes")
+            .select(
+                "rutero_dia_id, "
+                "clientes(id, cod_cliente, documento, nombre, razon_social, direccion, "
+                "barrio, ciudad, dias_visita, telefono, asesor_campo, novedad_excel)"
+            )
+            .in_("rutero_dia_id", rutero_dia_ids)
+            .execute()
+        )
+
+        vistos: set[str] = set()
+        clientes: List[dict] = []
+        for row in (rc_result.data or []):
+            cliente = row.get("clientes")
+            if not cliente:
+                continue
+            cli_id = cliente["id"]
+            if cli_id in vistos:
+                continue
+            vistos.add(cli_id)
+            clientes.append({**cliente, "usuario_id": usuario_por_rutero_dia.get(row["rutero_dia_id"])})
+
+        return clientes
+
     async def eliminar_rutero_dia(self, fecha: date, asesor: str) -> bool:
         rutero_dia_id = await self.get_rutero_dia_id(fecha, asesor)
         if rutero_dia_id is None:

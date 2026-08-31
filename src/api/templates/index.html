@@ -115,14 +115,24 @@
     {% include "partials/lista_clientes.html" %}
 </div>
 
-<!-- Botón exportar -->
-<div id="footer-lista" class="mt-8 flex justify-end">
+<!-- Botones de exportación: son DOS cosas distintas, con etiqueta y color
+     diferentes para que la asesora no las confunda. -->
+<div id="footer-lista" class="mt-8 flex justify-end gap-3 flex-wrap">
+    <a
+        id="link-exportar-rutero"
+        href="/rutero/exportar-completo?fecha={{ hoy.isoformat() }}"
+        title="Descarga los 620 clientes de la semana con tus correcciones, listo para volver a subirlo mañana."
+        class="inline-flex items-center gap-2 bg-cian hover:opacity-90 text-white font-semibold px-5 py-2.5 rounded-lg shadow-sm transition"
+    >
+        📥 Descargar rutero completo (para reimportar)
+    </a>
     <a
         id="link-exportar"
         href="/reportes/exportar?fecha={{ hoy.isoformat() }}"
+        title="Reporte de excepciones del día: novedades, saltados y no contestaron — para el supervisor."
         class="inline-flex items-center gap-2 bg-marca hover:bg-marca-hover text-white font-semibold px-5 py-2.5 rounded-lg shadow-sm transition"
     >
-        📊 Exportar reporte Excel
+        📊 Exportar reporte de excepciones
     </a>
 </div>
 
@@ -240,6 +250,7 @@ function cambiarFecha(valor) {
 // cambiarFecha() recarga, pero se deja robusto ante futuros cambios).
 document.getElementById('selector-fecha').addEventListener('change', function() {
     document.getElementById('link-exportar').href = '/reportes/exportar?fecha=' + this.value;
+    document.getElementById('link-exportar-rutero').href = '/rutero/exportar-completo?fecha=' + this.value;
 });
 
 // ──────────────────────────────────────────────

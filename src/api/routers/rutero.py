@@ -2,18 +2,20 @@ from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 from src.api.dependencies import (
     get_asesor_actual,
     get_cargar_rutero,
     get_eliminar_rutero_dia,
+    get_exportar_rutero_excel,
     get_obtener_rutero_dia,
 )
 from src.api.templates_config import templates
 from src.application.use_cases.calcular_stats_rutero import calcular_stats, filtrar_clientes
 from src.application.use_cases.cargar_rutero import CargarRutero
 from src.application.use_cases.eliminar_rutero_dia import EliminarRuteroDia
+from src.application.use_cases.exportar_rutero_excel import ExportarRuteroExcel
 from src.application.use_cases.obtener_rutero_dia import ObtenerRuteroDia
 
 router = APIRouter(prefix="/rutero", tags=["rutero"])
@@ -95,6 +97,27 @@ async def resumen_rutero_dia(
     uc: EliminarRuteroDia = Depends(get_eliminar_rutero_dia),
 ):
     return JSONResponse(await uc.resumen(fecha, asesor))
+
+
+@router.get("/exportar-completo")
+async def exportar_rutero_completo(
+    fecha: Optional[date] = None,
+    asesor: str = Depends(get_asesor_actual),
+    uc: ExportarRuteroExcel = Depends(get_exportar_rutero_excel),
+):
+    """
+    Rutero completo de la semana (12 columnas del Excel original), listo
+    para corregir y volver a subir. Distinto de /reportes/exportar (que
+    exporta solo las excepciones del día con 6 columnas).
+    """
+    fecha_efectiva = fecha or date.today()
+    buffer, nombre_archivo = await uc.execute(fecha_efectiva, asesor)
+    headers = {"Content-Disposition": f'attachment; filename="{nombre_archivo}"'}
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers,
+    )
 
 
 @router.delete("/eliminar")

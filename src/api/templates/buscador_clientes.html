@@ -29,6 +29,13 @@
     </div>
 </div>
 
+<div id="panel-ficha" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+    <h2 class="text-lg font-bold text-marca mb-1">✏️ Datos de <span id="nombre-cliente-ficha"></span></h2>
+    <div id="ficha-cliente-wrap">
+        <p class="text-xs text-gray-400 italic py-3">Cargando...</p>
+    </div>
+</div>
+
 <div id="panel-historial" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 p-6">
     <h2 class="text-lg font-bold text-marca mb-1">📋 Historial de <span id="nombre-cliente-seleccionado"></span></h2>
     <p class="text-xs text-gray-400 mb-4">Solo se muestran tus propias novedades sobre este cliente.</p>
@@ -42,12 +49,48 @@
 {% block scripts %}
 <script>
 function seleccionarCliente(clienteId, nombre) {
+    document.getElementById('panel-ficha').classList.remove('hidden');
+    document.getElementById('nombre-cliente-ficha').textContent = nombre;
+    htmx.ajax('GET', '/clientes/' + clienteId + '/ficha', { target: '#ficha-cliente-wrap' });
+
     document.getElementById('panel-historial').classList.remove('hidden');
     document.getElementById('nombre-cliente-seleccionado').textContent = nombre;
     document.getElementById('historial-novedades-wrap').setAttribute('data-cliente-id', clienteId);
     htmx.ajax('GET', '/clientes/' + clienteId + '/historial', { target: '#historial-novedades-wrap' });
-    document.getElementById('panel-historial').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('panel-ficha').scrollIntoView({ behavior: 'smooth' });
 }
+
+async function guardarCliente(event, clienteId) {
+    event.preventDefault();
+    const form = event.target;
+    const datos = {
+        nombre: form.nombre.value,
+        razon_social: form.razon_social.value,
+        direccion: form.direccion.value,
+        barrio: form.barrio.value,
+        ciudad: form.ciudad.value,
+        telefono: form.telefono.value,
+        documento: form.documento.value,
+    };
+    const resp = await fetch('/clientes/' + clienteId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datos),
+    });
+    const html = await resp.text();
+    document.getElementById('ficha-cliente-wrap').innerHTML = html;
+    return false;
+}
+
+// Deep-link desde la vista enfocada: /clientes/buscador?cliente_id=..&nombre=..
+document.addEventListener('DOMContentLoaded', function() {
+    const params = new URLSearchParams(window.location.search);
+    const clienteId = params.get('cliente_id');
+    const nombre = params.get('nombre') || '';
+    if (clienteId) {
+        seleccionarCliente(clienteId, nombre);
+    }
+});
 
 async function pedirAnulacion(novedadId, clienteId, tipo, fecha) {
     const msg = `¿Anular esta novedad?\n\nTipo: ${tipo}\nFecha: ${fecha}\n\nNo se borra, queda marcada como anulada y deja de contar en el dashboard.`;
