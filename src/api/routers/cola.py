@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel
 
@@ -136,6 +136,9 @@ async def saltar_cliente(
 
 class LlamarColaBody(BaseModel):
     rutero_cliente_id: str
+    # Nunca un número: solo una etiqueta. El servidor resuelve el número
+    # real desde la base de datos (ver OrdenarLlamadaCliente).
+    numero_a_usar: Literal["principal", "secundario"] = "principal"
 
 
 async def _resolver_telefono_id(
@@ -188,7 +191,7 @@ async def llamar_cliente_actual(
         return JSONResponse({"error": err["error"]}, status_code=err["status"])
 
     try:
-        resultado = await uc.execute(body.rutero_cliente_id, telefono_id)
+        resultado = await uc.execute(body.rutero_cliente_id, telefono_id, body.numero_a_usar)
     except ValueError as e:
         # Teléfono del cliente inválido o rutero_cliente inexistente
         return JSONResponse({"error": str(e)}, status_code=400)

@@ -117,8 +117,8 @@ class LlamadaRepository(ABC):
     @abstractmethod
     async def get_datos_para_llamar(self, rutero_cliente_id: str) -> dict:
         """
-        Devuelve {'telefono': str, 'nombre': str} del cliente asociado.
-        Lanza ValueError si el rutero_cliente no existe.
+        Devuelve {'telefono': str, 'telefono2': str|None, 'nombre': str} del
+        cliente asociado. Lanza ValueError si el rutero_cliente no existe.
         """
         ...
 

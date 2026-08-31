@@ -662,7 +662,7 @@ class SupabaseLlamadaRepository(LlamadaRepository):
     async def get_datos_para_llamar(self, rutero_cliente_id: str) -> dict:
         result = (
             self._db.table("rutero_clientes")
-            .select("id, clientes(nombre, telefono)")
+            .select("id, clientes(nombre, telefono, telefono2)")
             .eq("id", rutero_cliente_id)
             .limit(1)
             .execute()
@@ -672,6 +672,7 @@ class SupabaseLlamadaRepository(LlamadaRepository):
         cliente = result.data[0].get("clientes") or {}
         return {
             "telefono": cliente.get("telefono"),
+            "telefono2": cliente.get("telefono2"),
             "nombre": cliente.get("nombre"),
         }
 

@@ -192,8 +192,15 @@
         <!-- Avisos del estado de la llamada (marcando / errores del teléfono) -->
         <div id="slot-aviso-llamada"></div>
         {% if cliente.telefono2 %}
-        <!-- Solo se muestra: NO se integra con la marcación. -->
-        <p class="text-xs text-gray-400 -mt-1">☎️ Teléfono alterno: {{ cliente.telefono2 }}</p>
+        <!-- Segundo botón, visualmente distinto (morado) para no confundirlo
+             con "Llamar" (marca). Misma delegación de eventos, sin tocar el
+             flujo de avance de la cola: solo ordena marcar otro número. -->
+        <button
+            data-accion="llamar-secundario"
+            data-rc-id="{{ rc_id }}"
+            class="w-full bg-purple-50 hover:bg-purple-100 disabled:opacity-50 disabled:cursor-wait text-purple-700 border border-purple-200 text-sm font-semibold px-4 py-2 rounded-lg transition">
+            📞 Llamar al alterno ({{ cliente.telefono2 }})
+        </button>
         {% endif %}
         {% else %}
         <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">

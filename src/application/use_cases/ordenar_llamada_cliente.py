@@ -8,10 +8,16 @@ class OrdenarLlamadaCliente:
     """
     El asesor confirma que quiere llamar al cliente actual de la cola.
 
+    La app NO cuenta intentos: la asesora puede marcar al principal, al
+    secundario, o ambos, en cualquier orden y las veces que quiera. El
+    resultado (contestó / no contestó) lo sigue declarando ella con los
+    botones de siempre — BR-002 no cambia.
+
     Flujo:
-      1. Obtiene teléfono y nombre del cliente desde el repositorio
-         (no confía en datos que vengan del navegador).
-      2. Valida el número.
+      1. Obtiene teléfonos y nombre del cliente desde el repositorio
+         (no confía en datos que vengan del navegador: solo recibe una
+         ETIQUETA — 'principal'/'secundario' —, nunca un número).
+      2. Resuelve el número según la etiqueta y lo valida.
       3. Genera el llamada_id (UUID) — el servidor es quien lo genera (contrato §5.1).
       4. Persiste la correlación rutero_cliente ⇄ llamada_id ANTES de enviar
          la orden, para que el IDLE nunca llegue antes que la asociación.
@@ -22,12 +28,19 @@ class OrdenarLlamadaCliente:
         self._repo = llamada_repo
         self._gateway = telefono_gateway
 
-    async def execute(self, rutero_cliente_id: str, telefono_id: str) -> dict:
-        datos = await self._repo.get_datos_para_llamar(rutero_cliente_id)
-        numero = datos.get("telefono")
+    async def execute(self, rutero_cliente_id: str, telefono_id: str, numero_a_usar: str = "principal") -> dict:
+        if numero_a_usar not in ("principal", "secundario"):
+            raise ValueError(f"numero_a_usar inválido: '{numero_a_usar}'")
 
-        if not self._numero_valido(numero):
-            raise ValueError(f"El cliente tiene un teléfono inválido: '{numero}'")
+        datos = await self._repo.get_datos_para_llamar(rutero_cliente_id)
+        if numero_a_usar == "secundario":
+            numero = datos.get("telefono2")
+            if not self._numero_valido(numero):
+                raise ValueError("El cliente no tiene un teléfono alterno válido")
+        else:
+            numero = datos.get("telefono")
+            if not self._numero_valido(numero):
+                raise ValueError(f"El cliente tiene un teléfono inválido: '{numero}'")
 
         llamada_id = str(uuid.uuid4())
         await self._repo.asociar_llamada_telefono(rutero_cliente_id, llamada_id)

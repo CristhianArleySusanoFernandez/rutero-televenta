@@ -348,7 +348,10 @@ function despuesDeResultado() {
 // ──────────────────────────────────────────────
 document.getElementById('contenedor-enfocado').addEventListener('click', function(e) {
     const btnLlamar = e.target.closest('[data-accion="llamar-cliente"]');
-    if (btnLlamar) { llamarCliente(btnLlamar.dataset.rcId, btnLlamar); return; }
+    if (btnLlamar) { llamarCliente(btnLlamar.dataset.rcId, btnLlamar, 'principal'); return; }
+
+    const btnLlamarAlterno = e.target.closest('[data-accion="llamar-secundario"]');
+    if (btnLlamarAlterno) { llamarCliente(btnLlamarAlterno.dataset.rcId, btnLlamarAlterno, 'secundario'); return; }
 
     // "Atender ahora" desde la pantalla de espera: carga ese cliente específico.
     // cargarSiguienteCliente ya cancela el refresco de 30s, y como la vista
@@ -357,7 +360,8 @@ document.getElementById('contenedor-enfocado').addEventListener('click', functio
     if (btnAtender) cargarSiguienteCliente(btnAtender.dataset.rcId);
 });
 
-async function llamarCliente(rcId, btn) {
+async function llamarCliente(rcId, btn, numeroAUsar) {
+    const textoOriginal = btn ? btn.textContent : null;
     if (btn) { btn.disabled = true; btn.textContent = '📞 Marcando...'; }
     mostrarAvisoLlamada('info', '📤 Enviando orden al teléfono...');
 
@@ -365,7 +369,7 @@ async function llamarCliente(rcId, btn) {
         const r = await fetch('/cola/llamar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ rutero_cliente_id: rcId }),
+            body: JSON.stringify({ rutero_cliente_id: rcId, numero_a_usar: numeroAUsar || 'principal' }),
         });
         const data = await r.json();
 
@@ -383,7 +387,7 @@ async function llamarCliente(rcId, btn) {
     } catch (err) {
         mostrarAvisoLlamada('error', '❌ No se pudo contactar al servidor: ' + err.message);
     } finally {
-        if (btn) { btn.disabled = false; btn.textContent = '📞 Llamar'; }
+        if (btn) { btn.disabled = false; btn.textContent = textoOriginal; }
     }
     actualizarBadgeTelefono();
 }
