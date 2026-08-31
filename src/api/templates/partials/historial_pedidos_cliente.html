@@ -1,0 +1,16 @@
+<div>
+    {% if not pedidos %}
+    <p class="text-xs text-gray-400 italic py-3">Este cliente no tiene pedidos registrados.</p>
+    {% else %}
+    <div class="space-y-2">
+        {% for p in pedidos %}
+        <div class="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs">
+            <div class="flex justify-between items-start gap-2">
+                <span class="text-gray-700">{{ p.detalle }}</span>
+                <span class="text-gray-400 whitespace-nowrap">{{ p.fecha }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>

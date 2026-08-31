@@ -36,6 +36,13 @@
     </div>
 </div>
 
+<div id="panel-pedidos" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+    <h2 class="text-lg font-bold text-marca mb-1">🛒 Pedidos recientes</h2>
+    <div id="pedidos-cliente-wrap">
+        <p class="text-xs text-gray-400 italic py-3">Cargando...</p>
+    </div>
+</div>
+
 <div id="panel-historial" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 p-6">
     <h2 class="text-lg font-bold text-marca mb-1">📋 Historial de <span id="nombre-cliente-seleccionado"></span></h2>
     <p class="text-xs text-gray-400 mb-4">Solo se muestran tus propias novedades sobre este cliente.</p>
@@ -52,6 +59,9 @@ function seleccionarCliente(clienteId, nombre) {
     document.getElementById('panel-ficha').classList.remove('hidden');
     document.getElementById('nombre-cliente-ficha').textContent = nombre;
     htmx.ajax('GET', '/clientes/' + clienteId + '/ficha', { target: '#ficha-cliente-wrap' });
+
+    document.getElementById('panel-pedidos').classList.remove('hidden');
+    htmx.ajax('GET', '/pedidos/' + clienteId + '/historial', { target: '#pedidos-cliente-wrap' });
 
     document.getElementById('panel-historial').classList.remove('hidden');
     document.getElementById('nombre-cliente-seleccionado').textContent = nombre;

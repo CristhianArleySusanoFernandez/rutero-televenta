@@ -65,6 +65,22 @@ CREATE TABLE IF NOT EXISTS notas_cliente (
 );
 ALTER TABLE notas_cliente DISABLE ROW LEVEL SECURITY;
 
+-- Pedidos registrados por cliente (texto libre, NO catálogo de productos).
+-- cliente_id CASCADE (sin cliente el pedido no tiene sentido);
+-- rutero_cliente_id SET NULL (mismo criterio que novedades, BR-014: el
+-- historial de compras sobrevive a la eliminación de un rutero).
+CREATE TABLE IF NOT EXISTS pedidos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cliente_id UUID NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+    rutero_cliente_id UUID REFERENCES rutero_clientes(id) ON DELETE SET NULL,
+    asesor TEXT,
+    fecha DATE NOT NULL,
+    detalle TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_pedidos_cliente_fecha ON pedidos (cliente_id, fecha DESC);
+CREATE INDEX IF NOT EXISTS idx_pedidos_asesor_created ON pedidos (asesor, created_at DESC);
+
 -- ============================================================
 -- Migraciones para bases existentes (sin efecto si ya existe)
 -- ============================================================

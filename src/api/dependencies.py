@@ -18,19 +18,23 @@ from src.application.use_cases.obtener_dashboard_novedades import ObtenerDashboa
 from src.application.use_cases.obtener_datos_tarjeta_cliente import ObtenerDatosTarjetaCliente
 from src.application.use_cases.obtener_historial import ObtenerHistorial
 from src.application.use_cases.obtener_historial_cliente_asesor import ObtenerHistorialClienteAsesor
+from src.application.use_cases.obtener_historial_pedidos_cliente import ObtenerHistorialPedidosCliente
 from src.application.use_cases.obtener_rutero_dia import ObtenerRuteroDia
 from src.application.use_cases.obtener_siguiente_cliente import ObtenerSiguienteCliente
+from src.application.use_cases.obtener_sugerencias_pedido import ObtenerSugerenciasPedido
 from src.application.use_cases.ordenar_llamada_cliente import OrdenarLlamadaCliente
 from src.application.use_cases.registrar_fin_llamada import RegistrarFinLlamada
 from src.application.use_cases.registrar_llamada import RegistrarLlamada
 from src.application.use_cases.registrar_no_contesta import RegistrarNoContesta
 from src.application.use_cases.registrar_novedad import RegistrarNovedad
+from src.application.use_cases.registrar_pedido import RegistrarPedido
 from src.application.use_cases.seleccionar_asesor import SeleccionarAsesor
 from src.infrastructure.adapters.excel_rutero_parser import ExcelRuteroParser
 from src.infrastructure.adapters.supabase_asesor_repository import SupabaseAsesorRepository
 from src.infrastructure.adapters.supabase_cliente_repository import SupabaseClienteRepository
 from src.infrastructure.adapters.supabase_llamada_repository import SupabaseLlamadaRepository
 from src.infrastructure.adapters.supabase_nota_cliente_repository import SupabaseNotaClienteRepository
+from src.infrastructure.adapters.supabase_pedido_repository import SupabasePedidoRepository
 from src.infrastructure.adapters.websocket_telefono_gateway import WebSocketTelefonoGateway
 from src.infrastructure.supabase_client import get_supabase
 
@@ -119,6 +123,22 @@ def get_nota_repo() -> SupabaseNotaClienteRepository:
 
 def get_gestionar_notas() -> GestionarNotasCliente:
     return GestionarNotasCliente(get_nota_repo())
+
+
+def get_pedido_repo() -> SupabasePedidoRepository:
+    return SupabasePedidoRepository(get_supabase())
+
+
+def get_registrar_pedido() -> RegistrarPedido:
+    return RegistrarPedido(get_pedido_repo())
+
+
+def get_obtener_historial_pedidos_cliente() -> ObtenerHistorialPedidosCliente:
+    return ObtenerHistorialPedidosCliente(get_pedido_repo())
+
+
+def get_obtener_sugerencias_pedido() -> ObtenerSugerenciasPedido:
+    return ObtenerSugerenciasPedido(get_pedido_repo())
 
 
 def get_obtener_siguiente_cliente() -> ObtenerSiguienteCliente:

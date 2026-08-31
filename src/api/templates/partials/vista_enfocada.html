@@ -93,6 +93,43 @@
         {% endif %}
     </div>
 
+    <!-- Pedidos recientes: texto libre, sólo informativo. La señal de
+         inactividad únicamente aparece si hay al menos un pedido — sin
+         historial no se sabe nada del cliente, no es lo mismo que
+         llevar tiempo sin comprar. -->
+    <div class="bg-white border border-gray-200 rounded-xl p-4 space-y-2">
+        <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">🛒 Pedidos recientes</p>
+        {% if cliente.pedidos_recientes %}
+        <div class="space-y-1">
+            {% for p in cliente.pedidos_recientes %}
+            <div class="flex justify-between gap-2 text-sm">
+                <span class="text-gray-700">{{ p.detalle }}</span>
+                <span class="text-gray-400 whitespace-nowrap text-xs">{{ p.fecha }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% if cliente.semanas_sin_ultima_compra is not none %}
+            {% if cliente.semanas_sin_ultima_compra >= 4 %}
+            <p class="text-xs font-semibold text-alerta bg-red-50 border border-red-200 rounded-lg px-2 py-1.5 mt-1">
+                ⚠️ Última compra hace {{ cliente.semanas_sin_ultima_compra }} semana{{ 's' if cliente.semanas_sin_ultima_compra != 1 else '' }} — lleva tiempo sin pedir
+            </p>
+            {% else %}
+            <p class="text-xs text-gray-400 mt-1">
+                Última compra hace {{ cliente.semanas_sin_ultima_compra }} semana{{ 's' if cliente.semanas_sin_ultima_compra != 1 else '' }}
+            </p>
+            {% endif %}
+        {% endif %}
+        {% else %}
+        <p class="text-xs text-gray-400 italic">Sin pedidos registrados todavía.</p>
+        {% endif %}
+        <button
+            onclick="abrirFormPedido('{{ rc_id }}', '{{ cli_id }}')"
+            class="text-xs text-marca hover:underline font-medium">
+            + Registrar pedido
+        </button>
+        <div id="slot-pedido-enfocado"></div>
+    </div>
+
     <!-- Tarjeta principal -->
     <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6 space-y-4">
 

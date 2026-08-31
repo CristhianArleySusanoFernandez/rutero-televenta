@@ -658,6 +658,64 @@ function borrarFranjaEnfocada(rcId, cliId) {
 }
 
 // ──────────────────────────────────────────────
+// Pedidos — registrar lo vendido en la llamada actual. NUNCA avanza la
+// cola ni cambia el estado (no llama despuesDeResultado()), igual que
+// la franja horaria. La asesora puede registrar varios seguidos: el
+// formulario se limpia y se queda abierto tras guardar.
+// ──────────────────────────────────────────────
+async function abrirFormPedido(rcId, cliId) {
+    document.getElementById('slot-pedido-enfocado').innerHTML = `
+        <div class="bg-marca-suave border border-cian rounded-xl p-3 mt-2 space-y-2">
+            <label class="text-[11px] text-gray-500 uppercase tracking-wide">¿Qué pidió?</label>
+            <input type="text" id="pedido-detalle-${rcId}" list="pedido-sugerencias-${rcId}"
+                placeholder="Ej: 2 cajas de galletas, 1 bulto de arroz..."
+                class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
+            <datalist id="pedido-sugerencias-${rcId}"></datalist>
+            <div class="flex gap-2 items-center">
+                <button onclick="guardarPedido('${rcId}', '${cliId}')"
+                    class="bg-marca hover:bg-marca-hover text-white font-semibold px-4 py-1.5 rounded-lg text-sm transition">
+                    Guardar
+                </button>
+                <button onclick="document.getElementById('slot-pedido-enfocado').innerHTML=''"
+                    class="text-xs text-gray-400 hover:text-gray-600">Cerrar</button>
+            </div>
+            <div id="pedido-mensaje-${rcId}"></div>
+        </div>`;
+
+    try {
+        const r = await fetch('/pedidos/sugerencias?cliente_id=' + cliId);
+        const data = await r.json();
+        const datalist = document.getElementById('pedido-sugerencias-' + rcId);
+        if (datalist && data.sugerencias) {
+            datalist.innerHTML = data.sugerencias.map(s => `<option value="${s.replace(/"/g, '&quot;')}">`).join('');
+        }
+    } catch (err) {
+        // Sugerencias son un extra: si fallan, el campo de texto libre sigue funcionando.
+    }
+}
+
+async function guardarPedido(rcId, cliId) {
+    const input = document.getElementById('pedido-detalle-' + rcId);
+    const detalle = input.value;
+    const mensaje = document.getElementById('pedido-mensaje-' + rcId);
+
+    const resp = await fetch('/pedidos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cliente_id: cliId, rutero_cliente_id: rcId, detalle: detalle }),
+    });
+
+    if (resp.ok) {
+        input.value = '';
+        mensaje.innerHTML = '<p class="text-xs text-green-700 mt-1">✓ Pedido guardado — puedes registrar otro.</p>';
+        input.focus();
+    } else {
+        const data = await resp.json().catch(() => ({}));
+        mensaje.innerHTML = '<p class="text-xs text-alerta mt-1">⚠ ' + (data.detail || 'No se pudo guardar.') + '</p>';
+    }
+}
+
+// ──────────────────────────────────────────────
 // Eliminar rutero del día (destructivo, con confirmación)
 // ──────────────────────────────────────────────
 async function eliminarRuteroDelDia() {

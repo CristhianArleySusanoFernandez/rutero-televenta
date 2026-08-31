@@ -6,7 +6,8 @@ from supabase import Client
 from src.domain.entities.llamada import Llamada
 from src.domain.entities.novedad import Novedad
 from src.domain.ports.llamada_repository import LlamadaRepository
-from src.domain.servicios.fecha_colombia import ahora_colombia
+from src.domain.servicios.antiguedad_pedido import semanas_desde_ultimo_pedido
+from src.domain.servicios.fecha_colombia import ahora_colombia, hoy_colombia
 from src.domain.servicios.franja_horaria import esta_fuera_de_franja
 from src.domain.value_objects.estado_llamada import EstadoLlamada
 from src.domain.value_objects.tipo_novedad import TipoNovedad
@@ -20,6 +21,23 @@ def _parsear_hora(valor) -> Optional[time]:
         return time.fromisoformat(str(valor))
     except ValueError:
         return None
+
+
+def _datos_pedidos(pedidos_rows: list) -> dict:
+    """
+    Últimos pedidos (ya ordenados desc por fecha) y semanas desde el más
+    reciente. `semanas_sin_ultima_compra` es None si el cliente no tiene
+    NINGÚN pedido registrado — no sabemos nada de él, no es lo mismo que
+    haber dejado de comprar (nunca se marca como inactivo sin historial).
+    """
+    semanas = None
+    if pedidos_rows:
+        fecha_ultimo = date.fromisoformat(str(pedidos_rows[0]["fecha"]))
+        semanas = semanas_desde_ultimo_pedido(fecha_ultimo, hoy_colombia())
+    return {
+        "pedidos_recientes": pedidos_rows,
+        "semanas_sin_ultima_compra": semanas,
+    }
 
 
 def _datos_franja(cliente: dict) -> dict:
@@ -407,6 +425,7 @@ class SupabaseLlamadaRepository(LlamadaRepository):
         cli_id = cliente.get("id")
         notas: list = []
         franja: dict = _datos_franja({})
+        pedidos: dict = _datos_pedidos([])
         if cli_id:
             n = (
                 self._db.table("notas_cliente")
@@ -428,6 +447,19 @@ class SupabaseLlamadaRepository(LlamadaRepository):
                 .execute()
             )
             franja = _datos_franja(f.data[0]) if f.data else _datos_franja({})
+
+            # Últimos 3 pedidos del cliente, misma técnica de consulta
+            # aparte (no se toca get_siguiente_en_cola).
+            p = (
+                self._db.table("pedidos")
+                .select("fecha, detalle")
+                .eq("cliente_id", cli_id)
+                .order("fecha", desc=True)
+                .order("created_at", desc=True)
+                .limit(3)
+                .execute()
+            )
+            pedidos = _datos_pedidos(p.data or [])
 
         reagendado_para = row.get("reagendado_para")
         minutos_reagendado = None
@@ -458,6 +490,7 @@ class SupabaseLlamadaRepository(LlamadaRepository):
             "minutos_reagendado": minutos_reagendado,
             "reagendado_para": reagendado_para,
             **franja,
+            **pedidos,
         }
 
     async def get_datos_tarjeta_cliente(self, rutero_cliente_id: str) -> dict:
