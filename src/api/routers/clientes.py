@@ -11,6 +11,7 @@ from src.api.dependencies import (
     get_cliente_repo,
     get_editar_cliente,
     get_editar_franja_horaria,
+    get_obtener_historial_cambios_cliente,
     get_obtener_historial_cliente_asesor,
 )
 from src.api.templates_config import templates
@@ -23,6 +24,7 @@ from src.application.use_cases.anular_novedad import (
 from src.application.use_cases.buscar_clientes import BuscarClientes, MIN_CARACTERES
 from src.application.use_cases.editar_cliente import EditarCliente
 from src.application.use_cases.editar_franja_horaria import EditarFranjaHoraria
+from src.application.use_cases.obtener_historial_cambios_cliente import ObtenerHistorialCambiosCliente
 from src.application.use_cases.obtener_historial_cliente_asesor import ObtenerHistorialClienteAsesor
 from src.infrastructure.adapters.supabase_cliente_repository import SupabaseClienteRepository
 
@@ -109,18 +111,33 @@ async def ficha_cliente(
     )
 
 
+@router.get("/{cliente_id}/cambios", response_class=HTMLResponse)
+async def historial_cambios_cliente(
+    request: Request,
+    cliente_id: str,
+    uc: ObtenerHistorialCambiosCliente = Depends(get_obtener_historial_cambios_cliente),
+):
+    cambios = await uc.execute(cliente_id)
+    return templates.TemplateResponse(
+        request,
+        "partials/historial_cambios_cliente.html",
+        {"cambios": cambios},
+    )
+
+
 @router.post("/{cliente_id}", response_class=HTMLResponse)
 async def editar_cliente(
     request: Request,
     cliente_id: str,
     body: EditarClienteBody,
+    asesor: str = Depends(get_asesor_actual),
     uc: EditarCliente = Depends(get_editar_cliente),
     repo: SupabaseClienteRepository = Depends(get_cliente_repo),
 ):
     error = None
     guardado = False
     try:
-        await uc.execute(cliente_id, body.model_dump())
+        await uc.execute(cliente_id, body.model_dump(), asesor)
         guardado = True
     except ValueError as e:
         error = str(e)

@@ -81,6 +81,22 @@ CREATE TABLE IF NOT EXISTS pedidos (
 CREATE INDEX IF NOT EXISTS idx_pedidos_cliente_fecha ON pedidos (cliente_id, fecha DESC);
 CREATE INDEX IF NOT EXISTS idx_pedidos_asesor_created ON pedidos (asesor, created_at DESC);
 
+-- Historial de correcciones de datos de cliente hechas por las asesoras
+-- (vía EditarCliente), para un futuro reporte de solicitudes de cambio
+-- al ERP (ecom). NO registra franja horaria ni sobrescrituras del Excel.
+CREATE TABLE IF NOT EXISTS cambios_cliente (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cliente_id UUID NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+    asesor TEXT,
+    campo TEXT NOT NULL,
+    valor_anterior TEXT,
+    valor_nuevo TEXT,
+    fecha DATE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_cambios_cliente_fecha ON cambios_cliente (fecha);
+CREATE INDEX IF NOT EXISTS idx_cambios_cliente_cliente_created ON cambios_cliente (cliente_id, created_at DESC);
+
 -- ============================================================
 -- Migraciones para bases existentes (sin efecto si ya existe)
 -- ============================================================

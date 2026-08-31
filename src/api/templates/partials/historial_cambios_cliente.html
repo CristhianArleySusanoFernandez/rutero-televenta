@@ -1,0 +1,21 @@
+<div>
+    {% if not cambios %}
+    <p class="text-xs text-gray-400 italic py-2">Sin cambios registrados todavía.</p>
+    {% else %}
+    <div class="space-y-1.5">
+        {% for c in cambios %}
+        <div class="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs">
+            <div class="flex justify-between items-start gap-2">
+                <span class="font-semibold text-gray-600">{{ c.campo }}</span>
+                <span class="text-gray-400 whitespace-nowrap">{{ c.fecha }}{% if c.asesor %} · {{ c.asesor }}{% endif %}</span>
+            </div>
+            <p class="text-gray-500 mt-0.5">
+                <span class="line-through text-gray-400">{{ c.valor_anterior or '(vacío)' }}</span>
+                →
+                <span class="text-gray-700">{{ c.valor_nuevo or '(vacío)' }}</span>
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>

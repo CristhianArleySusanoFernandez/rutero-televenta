@@ -7,6 +7,7 @@ from src.application.use_cases.buscar_clientes import BuscarClientes
 from src.application.use_cases.cargar_rutero import CargarRutero
 from src.application.use_cases.corregir_resultado import CorregirResultado
 from src.application.use_cases.editar_cliente import EditarCliente
+from src.application.use_cases.obtener_historial_cambios_cliente import ObtenerHistorialCambiosCliente
 from src.application.use_cases.editar_franja_horaria import EditarFranjaHoraria
 from src.application.use_cases.eliminar_rutero_dia import EliminarRuteroDia
 from src.application.use_cases.exportar_rutero_excel import ExportarRuteroExcel
@@ -31,6 +32,7 @@ from src.application.use_cases.registrar_pedido import RegistrarPedido
 from src.application.use_cases.seleccionar_asesor import SeleccionarAsesor
 from src.infrastructure.adapters.excel_rutero_parser import ExcelRuteroParser
 from src.infrastructure.adapters.supabase_asesor_repository import SupabaseAsesorRepository
+from src.infrastructure.adapters.supabase_cambio_cliente_repository import SupabaseCambioClienteRepository
 from src.infrastructure.adapters.supabase_cliente_repository import SupabaseClienteRepository
 from src.infrastructure.adapters.supabase_llamada_repository import SupabaseLlamadaRepository
 from src.infrastructure.adapters.supabase_nota_cliente_repository import SupabaseNotaClienteRepository
@@ -86,7 +88,7 @@ def get_obtener_datos_tarjeta_cliente() -> ObtenerDatosTarjetaCliente:
 
 
 def get_exportar_reporte() -> ExportarReporte:
-    return ExportarReporte(get_llamada_repo())
+    return ExportarReporte(get_llamada_repo(), get_cambio_cliente_repo())
 
 
 def get_obtener_dashboard_novedades() -> ObtenerDashboardNovedades:
@@ -105,8 +107,16 @@ def get_anular_novedad() -> AnularNovedad:
     return AnularNovedad(get_llamada_repo())
 
 
+def get_cambio_cliente_repo() -> SupabaseCambioClienteRepository:
+    return SupabaseCambioClienteRepository(get_supabase())
+
+
 def get_editar_cliente() -> EditarCliente:
-    return EditarCliente(get_cliente_repo())
+    return EditarCliente(get_cliente_repo(), get_cambio_cliente_repo())
+
+
+def get_obtener_historial_cambios_cliente() -> ObtenerHistorialCambiosCliente:
+    return ObtenerHistorialCambiosCliente(get_cambio_cliente_repo())
 
 
 def get_editar_franja_horaria() -> EditarFranjaHoraria:
