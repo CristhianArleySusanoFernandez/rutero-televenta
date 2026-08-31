@@ -1,9 +1,20 @@
+from datetime import time
 from typing import List, Optional
 
 from supabase import Client
 
 from src.domain.entities.cliente import Cliente
 from src.domain.ports.cliente_repository import ClienteRepository
+
+
+def _parsear_hora(valor) -> Optional[time]:
+    """Supabase devuelve TIME como texto 'HH:MM:SS' (o None)."""
+    if not valor:
+        return None
+    try:
+        return time.fromisoformat(str(valor))
+    except ValueError:
+        return None
 
 
 class SupabaseClienteRepository(ClienteRepository):
@@ -84,6 +95,17 @@ class SupabaseClienteRepository(ClienteRepository):
             raise ValueError(f"Cliente '{cliente_id}' no existe")
         return self._to_entity(result.data[0])
 
+    async def actualizar_franja_horaria(self, cliente_id: str, franja_desde, franja_hasta) -> None:
+        (
+            self._db.table("clientes")
+            .update({
+                "franja_desde": franja_desde.isoformat() if franja_desde else None,
+                "franja_hasta": franja_hasta.isoformat() if franja_hasta else None,
+            })
+            .eq("id", cliente_id)
+            .execute()
+        )
+
     async def get_by_cod(self, cod_cliente: str) -> Optional[Cliente]:
         result = (
             self._db.table("clientes")
@@ -122,4 +144,6 @@ class SupabaseClienteRepository(ClienteRepository):
             telefono=row.get("telefono"),
             novedad_excel=row.get("novedad_excel"),
             asesor_campo=row.get("asesor_campo"),
+            franja_desde=_parsear_hora(row.get("franja_desde")),
+            franja_hasta=_parsear_hora(row.get("franja_hasta")),
         )

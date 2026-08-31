@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, time
 from typing import Optional
 
 
@@ -18,4 +18,9 @@ class Cliente:
     telefono: Optional[str] = None
     novedad_excel: Optional[str] = None
     asesor_campo: Optional[str] = None
+    # Franja horaria preferida (permanente, NO viene del Excel — ver
+    # _to_row() en supabase_cliente_repository.py, que a propósito NO
+    # incluye estos dos campos para que el upsert nunca los sobrescriba).
+    franja_desde: Optional[time] = None
+    franja_hasta: Optional[time] = None
     created_at: Optional[datetime] = None

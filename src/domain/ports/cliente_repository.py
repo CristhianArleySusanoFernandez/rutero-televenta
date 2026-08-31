@@ -39,6 +39,18 @@ class ClienteRepository(ABC):
         ...
 
     @abstractmethod
+    async def actualizar_franja_horaria(
+        self, cliente_id: str, franja_desde, franja_hasta
+    ) -> None:
+        """
+        Guarda (o borra, si ambas son None) la franja horaria preferida
+        del cliente. Método aparte de `actualizar()` porque no es un
+        campo del Excel ni comparte su validación (nombre obligatorio) —
+        y para que nunca se cuele en `_to_row()` por accidente.
+        """
+        ...
+
+    @abstractmethod
     async def get_by_cod(self, cod_cliente: str) -> Optional[Cliente]:
         ...
 

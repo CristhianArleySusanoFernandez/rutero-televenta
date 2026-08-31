@@ -76,5 +76,38 @@
             💾 Guardar corrección
         </button>
     </form>
+
+    <!-- Franja horaria preferida: dato aparte, no forma parte del Excel ni
+         de la corrección de datos de arriba. -->
+    <div class="border-t border-gray-100 mt-5 pt-4">
+        <p class="text-xs font-semibold text-gray-600 mb-1">⏰ Franja horaria preferida</p>
+        <p class="text-[11px] text-gray-400 mb-3">
+            No bloquea ninguna llamada: solo avisa si se le llama fuera de esta franja.
+            Déjala vacía para borrar la preferencia.
+        </p>
+        <div id="franja-mensaje-{{ cliente_id }}"></div>
+        <div class="flex items-end gap-2 flex-wrap">
+            <div>
+                <label class="text-[11px] text-gray-500 uppercase tracking-wide">Desde</label>
+                <input type="time" id="franja-desde-{{ cliente_id }}"
+                       value="{{ cliente.franja_desde.strftime('%H:%M') if cliente.franja_desde else '' }}"
+                       class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-cian">
+            </div>
+            <div>
+                <label class="text-[11px] text-gray-500 uppercase tracking-wide">Hasta</label>
+                <input type="time" id="franja-hasta-{{ cliente_id }}"
+                       value="{{ cliente.franja_hasta.strftime('%H:%M') if cliente.franja_hasta else '' }}"
+                       class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-cian">
+            </div>
+            <button type="button" onclick="guardarFranja('{{ cliente_id }}')"
+                    class="bg-cian hover:opacity-90 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">
+                Guardar franja
+            </button>
+            <button type="button" onclick="borrarFranja('{{ cliente_id }}')"
+                    class="text-xs text-gray-400 hover:text-alerta underline px-2 py-2">
+                Borrar preferencia
+            </button>
+        </div>
+    </div>
     {% endif %}
 </div>

@@ -13,3 +13,8 @@ except Exception:
 def hoy_colombia() -> date:
     """Fecha calendario actual en hora de Colombia (UTC-5, sin horario de verano)."""
     return datetime.now(_COLOMBIA).date()
+
+
+def ahora_colombia() -> datetime:
+    """Fecha y hora actuales en hora de Colombia (UTC-5, sin horario de verano)."""
+    return datetime.now(_COLOMBIA)

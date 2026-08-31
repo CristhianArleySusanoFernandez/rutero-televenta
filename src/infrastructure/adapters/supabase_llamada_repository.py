@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone, timedelta
+from datetime import date, datetime, time, timezone, timedelta
 from typing import List, Optional
 
 from supabase import Client
@@ -6,8 +6,37 @@ from supabase import Client
 from src.domain.entities.llamada import Llamada
 from src.domain.entities.novedad import Novedad
 from src.domain.ports.llamada_repository import LlamadaRepository
+from src.domain.servicios.fecha_colombia import ahora_colombia
+from src.domain.servicios.franja_horaria import esta_fuera_de_franja
 from src.domain.value_objects.estado_llamada import EstadoLlamada
 from src.domain.value_objects.tipo_novedad import TipoNovedad
+
+
+def _parsear_hora(valor) -> Optional[time]:
+    """Supabase devuelve TIME como texto 'HH:MM:SS' (o None)."""
+    if not valor:
+        return None
+    try:
+        return time.fromisoformat(str(valor))
+    except ValueError:
+        return None
+
+
+def _datos_franja(cliente: dict) -> dict:
+    """
+    Datos de franja horaria a exponer en cualquier dict de cliente que
+    viaje a las plantillas: la franja tal cual (para mostrarla siempre)
+    y si la hora actual (Colombia) está fuera de ella (None = sin
+    preferencia registrada, nunca genera aviso).
+    """
+    franja_desde = _parsear_hora(cliente.get("franja_desde"))
+    franja_hasta = _parsear_hora(cliente.get("franja_hasta"))
+    fuera_de_franja = esta_fuera_de_franja(franja_desde, franja_hasta, ahora_colombia().time())
+    return {
+        "franja_desde": franja_desde,
+        "franja_hasta": franja_hasta,
+        "fuera_de_franja": fuera_de_franja,
+    }
 
 
 class SupabaseLlamadaRepository(LlamadaRepository):
@@ -123,7 +152,8 @@ class SupabaseLlamadaRepository(LlamadaRepository):
             self._db.table("rutero_clientes")
             .select(
                 "*, "
-                "clientes(id, cod_cliente, nombre, razon_social, direccion, barrio, ciudad, telefono, dias_visita)"
+                "clientes(id, cod_cliente, nombre, razon_social, direccion, barrio, ciudad, "
+                "telefono, dias_visita, franja_desde, franja_hasta)"
             )
             .eq("rutero_dia_id", rutero_dia_id)
             .order("posicion_cola", desc=False)
@@ -183,6 +213,7 @@ class SupabaseLlamadaRepository(LlamadaRepository):
                     "dias_visita": cliente.get("dias_visita"),
                     "ultima_novedad": novedades_por_rc.get(rc_id),
                     "notas_permanentes": notas_por_cliente.get(cli_id, []),
+                    **_datos_franja(cliente),
                 }
             )
 
@@ -375,6 +406,7 @@ class SupabaseLlamadaRepository(LlamadaRepository):
         cliente = row.get("clientes") or {}
         cli_id = cliente.get("id")
         notas: list = []
+        franja: dict = _datos_franja({})
         if cli_id:
             n = (
                 self._db.table("notas_cliente")
@@ -384,6 +416,18 @@ class SupabaseLlamadaRepository(LlamadaRepository):
                 .execute()
             )
             notas = n.data or []
+
+            # get_siguiente_en_cola no trae franja_desde/franja_hasta en su
+            # select (no se toca esa función, ver restricción de la tarea)
+            # — se resuelve aquí con una consulta aparte, igual que notas.
+            f = (
+                self._db.table("clientes")
+                .select("franja_desde, franja_hasta")
+                .eq("id", cli_id)
+                .limit(1)
+                .execute()
+            )
+            franja = _datos_franja(f.data[0]) if f.data else _datos_franja({})
 
         reagendado_para = row.get("reagendado_para")
         minutos_reagendado = None
@@ -413,6 +457,7 @@ class SupabaseLlamadaRepository(LlamadaRepository):
             "viene_de_reagendamiento": viene_de_reagendamiento,
             "minutos_reagendado": minutos_reagendado,
             "reagendado_para": reagendado_para,
+            **franja,
         }
 
     async def get_datos_tarjeta_cliente(self, rutero_cliente_id: str) -> dict:

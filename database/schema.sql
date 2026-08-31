@@ -90,6 +90,13 @@ ALTER TABLE novedades ADD COLUMN IF NOT EXISTS anulada_motivo TEXT;
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS novedad_excel TEXT;
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS asesor_campo TEXT;
 
+-- Franja horaria preferida del cliente para ser llamado (permanente, NO
+-- viene del Excel — por eso NO debe agregarse a _to_row() en
+-- supabase_cliente_repository.py, o el upsert la perdería en cada carga).
+-- Ambas NULL = sin preferencia (estado por defecto).
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS franja_desde TIME;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS franja_hasta TIME;
+
 -- Ampliar el CHECK de estado en rutero_clientes existente
 -- (Supabase no permite ALTER CHECK directamente; se recrea la constraint)
 ALTER TABLE rutero_clientes DROP CONSTRAINT IF EXISTS rutero_clientes_estado_check;

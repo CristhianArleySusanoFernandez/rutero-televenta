@@ -7,6 +7,7 @@ from src.application.use_cases.buscar_clientes import BuscarClientes
 from src.application.use_cases.cargar_rutero import CargarRutero
 from src.application.use_cases.corregir_resultado import CorregirResultado
 from src.application.use_cases.editar_cliente import EditarCliente
+from src.application.use_cases.editar_franja_horaria import EditarFranjaHoraria
 from src.application.use_cases.eliminar_rutero_dia import EliminarRuteroDia
 from src.application.use_cases.exportar_rutero_excel import ExportarRuteroExcel
 from src.application.use_cases.exportar_reporte import ExportarReporte
@@ -102,6 +103,10 @@ def get_anular_novedad() -> AnularNovedad:
 
 def get_editar_cliente() -> EditarCliente:
     return EditarCliente(get_cliente_repo())
+
+
+def get_editar_franja_horaria() -> EditarFranjaHoraria:
+    return EditarFranjaHoraria(get_cliente_repo())
 
 
 def get_exportar_rutero_excel() -> ExportarRuteroExcel:

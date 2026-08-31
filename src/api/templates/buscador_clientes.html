@@ -82,6 +82,33 @@ async function guardarCliente(event, clienteId) {
     return false;
 }
 
+async function _enviarFranja(clienteId, franjaDesde, franjaHasta) {
+    const resp = await fetch('/clientes/' + clienteId + '/franja', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ franja_desde: franjaDesde || null, franja_hasta: franjaHasta || null }),
+    });
+    const mensaje = document.getElementById('franja-mensaje-' + clienteId);
+    if (resp.ok) {
+        mensaje.innerHTML = '<p class="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-3">✓ Franja guardada.</p>';
+    } else {
+        const data = await resp.json().catch(() => ({}));
+        mensaje.innerHTML = '<p class="text-xs text-alerta bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">⚠ ' + (data.detail || 'No se pudo guardar.') + '</p>';
+    }
+}
+
+function guardarFranja(clienteId) {
+    const desde = document.getElementById('franja-desde-' + clienteId).value;
+    const hasta = document.getElementById('franja-hasta-' + clienteId).value;
+    _enviarFranja(clienteId, desde, hasta);
+}
+
+function borrarFranja(clienteId) {
+    document.getElementById('franja-desde-' + clienteId).value = '';
+    document.getElementById('franja-hasta-' + clienteId).value = '';
+    _enviarFranja(clienteId, null, null);
+}
+
 // Deep-link desde la vista enfocada: /clientes/buscador?cliente_id=..&nombre=..
 document.addEventListener('DOMContentLoaded', function() {
     const params = new URLSearchParams(window.location.search);

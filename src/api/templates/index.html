@@ -595,6 +595,69 @@ async function confirmarReagendar(rcId, minutos) {
 }
 
 // ──────────────────────────────────────────────
+// Franja horaria preferida — solo guarda un dato del cliente, NUNCA
+// avanza la cola ni cambia el estado de la llamada en curso (a
+// diferencia de reagendar/resultado, aquí no se llama despuesDeResultado()).
+// ──────────────────────────────────────────────
+function abrirFormFranja(rcId, cliId, desdeActual, hastaActual) {
+    document.getElementById('slot-franja-enfocado').innerHTML = `
+        <div class="bg-cian-suave border border-cian rounded-xl p-4 mt-2 space-y-3">
+            <p class="text-sm font-semibold text-marca">⏰ Franja horaria preferida de este cliente</p>
+            <p class="text-xs text-gray-500">No bloquea nada: solo avisará si se le llama fuera de esta hora la próxima vez.</p>
+            <div class="flex gap-2 items-end flex-wrap">
+                <div>
+                    <label class="text-[11px] text-gray-500 uppercase tracking-wide">Desde</label>
+                    <input type="time" id="franja-desde-${rcId}" value="${desdeActual}"
+                        class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
+                </div>
+                <div>
+                    <label class="text-[11px] text-gray-500 uppercase tracking-wide">Hasta</label>
+                    <input type="time" id="franja-hasta-${rcId}" value="${hastaActual}"
+                        class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
+                </div>
+                <button onclick="guardarFranjaEnfocada('${rcId}', '${cliId}')"
+                    class="bg-marca hover:bg-marca-hover text-white font-semibold px-4 py-2 rounded-lg text-sm transition">
+                    Guardar
+                </button>
+                <button onclick="borrarFranjaEnfocada('${rcId}', '${cliId}')"
+                    class="text-xs text-gray-400 hover:text-alerta underline px-2 py-2">
+                    Borrar
+                </button>
+            </div>
+            <div id="franja-mensaje-${rcId}"></div>
+            <button onclick="document.getElementById('slot-franja-enfocado').innerHTML=''"
+                class="text-xs text-gray-400 hover:text-gray-600">Cerrar</button>
+        </div>`;
+}
+
+async function _guardarFranjaCliente(cliId, desde, hasta, rcId) {
+    const resp = await fetch('/clientes/' + cliId + '/franja', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ franja_desde: desde || null, franja_hasta: hasta || null }),
+    });
+    const mensaje = document.getElementById('franja-mensaje-' + rcId);
+    if (resp.ok) {
+        mensaje.innerHTML = '<p class="text-xs text-green-700">✓ Guardada para las próximas veces.</p>';
+    } else {
+        const data = await resp.json().catch(() => ({}));
+        mensaje.innerHTML = '<p class="text-xs text-alerta">⚠ ' + (data.detail || 'No se pudo guardar.') + '</p>';
+    }
+}
+
+function guardarFranjaEnfocada(rcId, cliId) {
+    const desde = document.getElementById('franja-desde-' + rcId).value;
+    const hasta = document.getElementById('franja-hasta-' + rcId).value;
+    _guardarFranjaCliente(cliId, desde, hasta, rcId);
+}
+
+function borrarFranjaEnfocada(rcId, cliId) {
+    document.getElementById('franja-desde-' + rcId).value = '';
+    document.getElementById('franja-hasta-' + rcId).value = '';
+    _guardarFranjaCliente(cliId, null, null, rcId);
+}
+
+// ──────────────────────────────────────────────
 // Eliminar rutero del día (destructivo, con confirmación)
 // ──────────────────────────────────────────────
 async function eliminarRuteroDelDia() {

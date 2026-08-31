@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Query, Request
+from datetime import time
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
@@ -8,6 +10,7 @@ from src.api.dependencies import (
     get_buscar_clientes,
     get_cliente_repo,
     get_editar_cliente,
+    get_editar_franja_horaria,
     get_obtener_historial_cliente_asesor,
 )
 from src.api.templates_config import templates
@@ -19,6 +22,7 @@ from src.application.use_cases.anular_novedad import (
 )
 from src.application.use_cases.buscar_clientes import BuscarClientes, MIN_CARACTERES
 from src.application.use_cases.editar_cliente import EditarCliente
+from src.application.use_cases.editar_franja_horaria import EditarFranjaHoraria
 from src.application.use_cases.obtener_historial_cliente_asesor import ObtenerHistorialClienteAsesor
 from src.infrastructure.adapters.supabase_cliente_repository import SupabaseClienteRepository
 
@@ -37,6 +41,11 @@ class EditarClienteBody(BaseModel):
     ciudad: str | None = None
     telefono: str | None = None
     documento: str | None = None
+
+
+class FranjaHorariaBody(BaseModel):
+    franja_desde: time | None = None
+    franja_hasta: time | None = None
 
 
 @router.get("/buscador", response_class=HTMLResponse)
@@ -117,6 +126,24 @@ async def editar_cliente(
         "partials/ficha_cliente.html",
         {"cliente": cliente, "cliente_id": cliente_id, "error": error, "guardado": guardado},
     )
+
+
+@router.post("/{cliente_id}/franja")
+async def guardar_franja_horaria(
+    cliente_id: str,
+    body: FranjaHorariaBody,
+    uc: EditarFranjaHoraria = Depends(get_editar_franja_horaria),
+):
+    """
+    Guarda o borra (ambas None) la franja horaria preferida del cliente.
+    No toca ningún estado de cola ni registra novedades — es información
+    permanente del cliente para las próximas veces que aparezca.
+    """
+    try:
+        await uc.execute(cliente_id, body.franja_desde, body.franja_hasta)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"ok": True}
 
 
 @router.post("/novedades/{novedad_id}/anular", response_class=HTMLResponse)

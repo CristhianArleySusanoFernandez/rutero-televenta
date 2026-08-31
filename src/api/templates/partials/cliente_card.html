@@ -40,6 +40,11 @@
                 ❓ Sin día definido
             </span>
             {% endif %}
+            {% if cliente.franja_desde and cliente.franja_hasta %}
+            <span class="text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap bg-cian-suave text-marca border border-cian" title="Prefiere ser llamado entre {{ cliente.franja_desde.strftime('%H:%M') }} y {{ cliente.franja_hasta.strftime('%H:%M') }}">
+                ⏰ {{ cliente.franja_desde.strftime('%H:%M') }}-{{ cliente.franja_hasta.strftime('%H:%M') }}
+            </span>
+            {% endif %}
         </div>
     </div>
 
