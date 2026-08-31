@@ -19,9 +19,13 @@ Antes, el proceso de televenta dependía de ruteros en Excel gestionados manualm
 - Registro de resultado de la llamada (contestó / no contestó / novedad), con corrección posterior.
 - Historial de novedades y notas permanentes por cliente; anulación (sin borrar) de novedades que ya no aplican.
 - Dashboard de novedades por día/semana/mes.
-- Búsqueda de clientes fuera de la cola, con edición de sus datos y de su franja horaria preferida (aviso, no bloqueo).
+- Búsqueda de clientes fuera de la cola, con edición de sus datos (incluidos los campos del formato nuevo de Excel: email, teléfono2, segmento, observación, dato a corregir) y de su franja horaria preferida (aviso, no bloqueo).
+- Registro de pedidos por cliente (texto libre), con historial de los últimos 3, sugerencias de texto ya usado y señal de inactividad si lleva tiempo sin comprar.
 - Aviso al cliente por WhatsApp cuando no se le pudo contactar.
-- Exportación de reporte de excepciones del día y exportación del rutero completo de la semana (para volver a subirlo).
+- Llamada al teléfono secundario del cliente, cuando lo tiene, sin contar como intento adicional.
+- Carga del rutero en dos formatos de Excel (antiguo y nuevo), filtrada por el código de asesora (puesto) para no mezclar los clientes de otra asesora.
+- Registro automático de correcciones de datos de cliente, con reporte semanal ("Correcciones solicitadas") para que la asesora se lo envíe a su jefe y éste gestione el cambio en el ERP (ecom).
+- Exportación de reporte de excepciones del día (con la hoja de correcciones incluida) y exportación del rutero completo de la semana (para volver a subirlo).
 - Gestión de múltiples asesoras trabajando en paralelo, cada una con su propio teléfono.
 
 ## Usuarios del sistema
@@ -47,7 +51,7 @@ Antes, el proceso de televenta dependía de ruteros en Excel gestionados manualm
 FastAPI, Uvicorn, Jinja2Templates, HTMX, Tailwind CSS v3 (build local), pandas + openpyxl (parseo de Excel), Supabase (`supabase-py`), pydantic-settings, WebSockets nativos de FastAPI, PyInstaller.
 
 ## Estado general
-Repositorio activo en `main`, último commit `0b304f5` al momento de esta inspección. Funcionalidad principal implementada y usada, incluyendo dashboard de novedades, buscador/edición de clientes, franja horaria preferida y exportación del rutero completo. Todas las migraciones de este checkpoint fueron ejecutadas y verificadas por el usuario en la instancia real de Supabase. Sigue sin existir ningún test automatizado — toda la verificación se hizo manualmente. Ver detalle completo, endpoints exactos y deuda técnica conocida en `CURRENT_STATE.md`.
+Repositorio activo en `main`. Funcionalidad principal implementada y usada, incluyendo dashboard de novedades, buscador/edición de clientes, franja horaria preferida, registro de pedidos, soporte de dos formatos de Excel con filtrado por código de asesora, llamada al teléfono secundario, y registro automático de correcciones de datos con su reporte semanal para los jefes (fase 2, ya implementada). Todas las migraciones de este checkpoint, incluida `cambios_cliente`, fueron ejecutadas y verificadas por el usuario en la instancia real de Supabase, según lo indicado por el usuario al encargar la actualización de esta documentación. Sigue sin existir ningún test automatizado — toda la verificación se hizo manualmente. Queda trabajo pendiente aplazado deliberadamente (alerta de abandono por producto, reordenación de cola por franja horaria) y deuda técnica conocida sin resolver — ver ambas secciones en `CURRENT_STATE.md`.
 
 ## Documentos relacionados
 - `CURRENT_STATE.md` — estado verificado desde el código.

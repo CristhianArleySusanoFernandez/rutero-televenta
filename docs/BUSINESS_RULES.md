@@ -97,6 +97,36 @@
 **Fuente:** `src/application/use_cases/cargar_rutero.py` (comentario y lógica explícitos).
 **Estado:** CONFIRMADA
 
+### BR-020 — Código de asesora: es un PUESTO, no una persona
+**Regla:** El `codigo_asesor` (ej. `10964`, `10991`) identifica un puesto de televenta, no a la persona que lo ocupa — las televendedoras rotan de puesto y deben poder cambiar su código configurado. Al cargar el formato nuevo de rutero, se filtran solo las filas cuyo código coincide con el configurado (o se autoconfigura si el archivo trae uno solo y la asesora no tiene ninguno); si hay varios códigos en el archivo y ninguno configurado, no se carga nada.
+**Fuente:** `src/application/use_cases/cargar_rutero.py` (`_filtrar_por_codigo_asesor`), `src/api/routers/asesor.py` (`/asesor/codigo`), `database/migration_formato_nuevo_rutero.sql` (`asesores.codigo_asesor`).
+**Estado:** CONFIRMADA
+
+### BR-021 — Llamada al teléfono secundario no cuenta como intento
+**Regla:** La asesora puede ordenar la marcación al `telefono2` del cliente además del principal, en cualquier orden y las veces que quiera. Marcar al secundario no registra novedades, no cambia el estado del `rutero_cliente`, y no participa en la lógica de reintentos — BR-002 no cambia: el intento fallido lo sigue declarando la asesora al pulsar "No contestó", sin importar a qué número llamó.
+**Fuente:** `src/application/use_cases/ordenar_llamada_cliente.py` (parámetro `numero_a_usar`), `POST /cola/llamar` (`src/api/routers/cola.py`).
+**Estado:** CONFIRMADA
+
+### BR-022 — Señal de inactividad de pedidos solo con historial previo
+**Regla:** La alerta de "lleva tiempo sin pedir" (`semanas_sin_ultima_compra >= 4`) solo puede aparecer si el cliente tiene al menos un pedido registrado. Un cliente sin ningún pedido registrado nunca se marca como inactivo — no haber comprado nunca no es lo mismo que haber dejado de comprar.
+**Fuente:** `src/domain/servicios/antiguedad_pedido.py`, `src/infrastructure/adapters/supabase_llamada_repository.py` (`_datos_pedidos`).
+**Estado:** CONFIRMADA
+
+### BR-023 — Registro automático de correcciones de datos del cliente
+**Regla:** Toda corrección de datos de cliente hecha por una asesora (vía `EditarCliente`) se registra automáticamente en `cambios_cliente`, una fila por cada campo de `CAMPOS_EDITABLES` que realmente cambió (comparado ya normalizado). La carga del Excel (`CargarRutero`/`upsert_lote`) y `EditarFranjaHoraria` NO generan ningún registro — no son correcciones hechas por la asesora sobre datos que existan en ecom.
+**Fuente:** `src/application/use_cases/editar_cliente.py` (`_registrar_cambios`), `database/migration_cambios_cliente.sql`.
+**Estado:** CONFIRMADA
+
+### BR-024 — Reporte de correcciones: semana del día exportado, filtrado por asesora
+**Regla:** La hoja "Correcciones solicitadas" del Excel de `/reportes/exportar` cubre la semana (lunes a sábado) que contiene la fecha exportada, y solo incluye los cambios del asesor de la sesión (BR-012) — nunca los de otra asesora.
+**Fuente:** `src/application/use_cases/exportar_reporte.py` (`_agregar_hoja_correcciones`), `src/infrastructure/adapters/supabase_cambio_cliente_repository.py` (`get_por_asesor_rango`, filtro `.eq("asesor", asesor)`).
+**Estado:** CONFIRMADA
+
+### BR-025 — El registro de correcciones es de solo consulta
+**Regla:** `cambios_cliente` y el reporte que lo exporta son de solo lectura para el flujo de negocio: nadie marca un cambio como "aplicado en ecom" desde la aplicación, porque el sistema no tiene forma de saber si el jefe efectivamente hizo el cambio en el ERP. El reporte es un insumo para que el jefe actúe fuera de la aplicación, no un flujo de aprobación.
+**Fuente:** `src/application/use_cases/exportar_reporte.py`, `src/domain/ports/cambio_cliente_repository.py` (sin ningún método de actualización o marcado de estado).
+**Estado:** CONFIRMADA
+
 ## Reglas por confirmar
 Estas afirmaciones parecen reglas de negocio plausibles pero no están confirmadas únicamente por el código/documentación revisados:
 

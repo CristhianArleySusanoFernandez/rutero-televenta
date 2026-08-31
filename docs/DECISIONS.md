@@ -117,3 +117,33 @@
 **Motivo:** Costo e infraestructura — la API de WhatsApp Business requiere cuenta de negocio verificada, aprobación de plantillas de mensaje y, en general, costo por conversación; un enlace `wa.me` no tiene ningún requisito de backend ni dependencia nueva y cumple el mismo objetivo (mensaje pre-escrito, un clic). Restricción explícita del usuario: "NO integres ninguna API de WhatsApp ni añadas dependencias nuevas".
 **Alternativas consideradas:** API oficial de WhatsApp Business (rechazada por costo/infraestructura); SMS (no evaluado, fuera del alcance solicitado).
 **Estado:** ACTIVA — commit `75dc068`.
+
+### DEC-020 — Pedidos en texto libre, sin catálogo de productos
+**Decisión:** El registro de pedidos por cliente (`pedidos.detalle`) es texto libre; no hay tabla de productos ni relación con un catálogo, y la señal de inactividad es solo por fecha (semanas desde el último pedido), nunca por producto específico.
+**Motivo:** El ERP/ecom de la empresa no tiene una base de productos actualizada y confiable; una alerta "dejaste de pedir el producto X" requeriría ese catálogo para tener sentido, y construirlo no era parte del alcance. Verificado explícitamente antes de diseñar la funcionalidad, no una limitación descubierta después.
+**Alternativas consideradas:** Relacionar pedidos con un catálogo de productos propio del sistema (rechazada: duplicaría datos que ya deberían vivir en el ERP y quedaría desincronizada); alerta de abandono por producto (rechazada por la misma razón, ver "Trabajo pendiente" en `CURRENT_STATE.md`).
+**Estado:** ACTIVA — commit `21819b6`.
+
+### DEC-021 — Dos formatos de Excel soportados mediante alias de columnas, no dos parsers
+**Decisión:** `ExcelRuteroParser` acepta el formato antiguo (`RUTERO_*.xlsx`) y el nuevo (`ACTUALIZACION_DATOS_TV_*.xlsx`) con un único `COLUMN_MAP` donde varios nombres de columna de Excel pueden mapear al mismo campo interno, en vez de mantener dos parsers separados o dos rutas de carga distintas.
+**Motivo:** Los dos formatos describen esencialmente los mismos datos con nombres de columna distintos (`Cod Cliente`/`Codigo`, `Dias Visita`/`Dias`, etc.); un único mapa de alias evita duplicar toda la lógica de reparto por día, upsert y validación que ya existía y estaba probada para el formato antiguo.
+**Alternativas consideradas:** Un parser nuevo dedicado al formato nuevo (rechazada: duplicaría `CargarRutero` y el resto del flujo de carga sin necesidad); detectar el formato y convertir a un DataFrame intermedio antes de mapear (rechazada por complejidad innecesaria frente al alias directo).
+**Estado:** ACTIVA — commit `5541b43`.
+
+### DEC-022 — Teléfono secundario resuelto en el servidor mediante etiqueta, sin cambiar el contrato WebSocket
+**Decisión:** Para llamar al `telefono2`, el navegador envía solo una etiqueta (`"principal"`/`"secundario"`), nunca un número; el servidor resuelve el número real contra la base de datos, igual que ya hacía con el principal. El contrato WebSocket v1.0 no se modificó.
+**Motivo:** Mantener el mismo principio de confianza que ya regía `OrdenarLlamadaCliente` ("no confía en datos que vengan del navegador") en vez de crear una excepción para el segundo número; el mensaje `llamar` del contrato ya llevaba `numero` como valor resuelto, así que no había necesidad de tocar un contrato que también usa (o usaría) la app Android, que no está en este repositorio y cuyo cambio habría que coordinar aparte. Verificado explícitamente (inspección de solo lectura previa) antes de implementar.
+**Alternativas consideradas:** Enviar el número desde el navegador (rechazada: rompe el principio de no confiar en el cliente, ya establecido); añadir un campo nuevo al contrato WS para indicar cuál número usar (rechazada: innecesaria, y habría requerido cambiar la app Android).
+**Estado:** ACTIVA — commit `f7e3b43`.
+
+### DEC-023 — Registrar correcciones automáticamente, no que la asesora marque qué pedir
+**Decisión:** Cada corrección de datos de cliente hecha desde la aplicación se registra automáticamente (campo, valor anterior, valor nuevo, asesor, fecha), comparando el estado del cliente antes y después de `EditarCliente`, en vez de pedirle a la asesora que indique manualmente qué cambio se debe solicitar en ecom.
+**Motivo:** El proceso manual existente (columnas `OBSERVACION`/`NOVEDAD`/`DATO A CORREGIR` del Excel real) se rellenaba de forma inconsistente — a veces el valor nuevo quedaba en una columna y el nombre del campo en otra, reportado explícitamente por el usuario. La aplicación ya sabe con exactitud qué campo cambió y a qué valor, porque es ella quien aplica el cambio: pedirle a la asesora que lo describa de nuevo reintroduciría el mismo riesgo de inconsistencia que se buscaba eliminar.
+**Alternativas consideradas:** Un formulario aparte donde la asesora describa el cambio a mano (rechazada: mismo problema de inconsistencia que el proceso actual con el Excel); marcar manualmente "esto hay que corregirlo en ecom" al momento de editar (rechazada: carga extra sobre la asesora para un dato que el sistema ya puede derivar solo).
+**Estado:** ACTIVA — commit consolidado en esta tarea de documentación/commits (ver `git log --stat` en el informe de la tarea).
+
+### DEC-024 — Reporte de correcciones por rango de fechas, sin seguimiento de "aplicado en ecom"
+**Decisión:** El reporte de correcciones (segunda hoja del Excel de `/reportes/exportar`) simplemente lista los cambios de la semana; no hay ningún mecanismo para que alguien marque una fila como "ya aplicada en ecom" ni para excluir de reportes futuros lo ya reportado.
+**Motivo:** Un seguimiento de "aplicado" exigiría que el jefe (que trabaja fuera de esta aplicación, directamente en ecom) volviera a marcarlo en el sistema — un paso adicional que depende de un tercero ajeno al flujo de la asesora y que no ocurriría de forma fiable. Es más simple y más honesto que el reporte sea un corte de la realidad ("esto cambió esta semana") que un flujo de aprobación que la aplicación no puede verificar.
+**Alternativas consideradas:** Estado `aplicado`/`pendiente` por fila en `cambios_cliente` con un endpoint para marcarlo (rechazada: dependencia de un actor externo al sistema, alto riesgo de quedar desactualizado); reporte acumulativo de todo el historial en vez de por semana (rechazada: el envío al jefe es semanal, un reporte acumulativo repetiría filas ya enviadas).
+**Estado:** ACTIVA — commit consolidado en esta tarea de documentación/commits (ver `git log --stat` en el informe de la tarea).

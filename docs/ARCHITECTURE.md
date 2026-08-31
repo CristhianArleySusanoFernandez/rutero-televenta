@@ -6,20 +6,21 @@
 
 ### `src/domain/`
 Sin dependencias externas.
-- `entities/`: `Cliente`, `Llamada`, `Novedad`, `NotaCliente`, `SesionTelefono` (dataclasses).
-- `ports/`: interfaces ABC — `LlamadaRepository`, `ClienteRepository`, `NotaClienteRepository`, `AsesorRepository`, `RuteroParser`, `TelefonoGateway`.
+- `entities/`: `Cliente`, `Llamada`, `Novedad`, `NotaCliente`, `SesionTelefono`, `Pedido`, `CambioCliente` (nuevo) (dataclasses).
+- `ports/`: interfaces ABC — `LlamadaRepository`, `ClienteRepository`, `NotaClienteRepository`, `AsesorRepository`, `RuteroParser`, `TelefonoGateway`, `PedidoRepository`, `CambioClienteRepository` (nuevo — mismo criterio de tabla dedicada que `PedidoRepository`/`NotaClienteRepository`, en vez de extender `ClienteRepository`).
 - `value_objects/`: `EstadoLlamada`, `TipoNovedad` (Enums `str`).
 - `servicios/dia_visita.py`: funciones puras (`parsear_dia_visita`, `fecha_del_dia_en_semana`), sin estado ni I/O.
 - `servicios/fecha_colombia.py`: `hoy_colombia()` (fecha) y `ahora_colombia()` (datetime), ambas en zona `America/Bogota` (`ZoneInfo`, con fallback a offset fijo `-5` si no hay tzdata disponible). Puras, sin I/O.
 - `servicios/franja_horaria.py`: `esta_fuera_de_franja(franja_desde, franja_hasta, ahora)` — compara horas del reloj (tipo `time`), devuelve `None`/`True`/`False`; cubre franjas que cruzan medianoche. Pura, sin I/O ni dependencia de zona horaria (recibe la hora ya resuelta).
 - `servicios/telefono_colombia.py`: `normalizar_telefono_whatsapp(numero)` — deja solo dígitos y antepone `57`; `None` si no resulta un móvil colombiano de 10 dígitos. Pura, sin I/O.
+- `servicios/antiguedad_pedido.py`: `semanas_desde_ultimo_pedido(fecha_ultimo_pedido, hoy)` (entero, semanas completas) y `es_inactividad_alarmante(semanas)` (booleano, umbral `UMBRAL_SEMANAS_ALARMA = 4`, justificado por la cadencia semanal del rutero — BR-009). Puras, sin I/O; nunca se llaman si el cliente no tiene ningún pedido registrado (se distingue "sin historial" de "inactivo").
 
 ### `src/application/use_cases/`
-Depende únicamente de `domain` (importa puertos, entidades, value objects). No conoce FastAPI ni Supabase directamente. 25 archivos en el directorio (24 casos de uso en clase + `calcular_stats_rutero.py`, que son funciones de stats/filtrado, no una clase) — recuento real vía `ls src/application/use_cases/*.py`. Los ya existentes: `CargarRutero`, `ObtenerRuteroDia`, `ObtenerSiguienteCliente`, `ObtenerClienteEspecifico`, `OrdenarLlamadaCliente`, `RegistrarLlamada`, `RegistrarNoContesta`, `CorregirResultado`, `RegistrarNovedad`, `RegistrarFinLlamada`, `EliminarRuteroDia`, `GestionarNotasCliente`, `ExportarReporte`, `ListarAsesores`, `SeleccionarAsesor`, `ObtenerHistorial`, `ObtenerDatosTarjetaCliente`. Nuevos desde el checkpoint anterior: `ObtenerDashboardNovedades`, `BuscarClientes`, `ObtenerHistorialClienteAsesor`, `AnularNovedad`, `EditarCliente`, `ExportarRuteroExcel`, `EditarFranjaHoraria`.
+Depende únicamente de `domain` (importa puertos, entidades, value objects). No conoce FastAPI ni Supabase directamente. 30 archivos en el directorio (28 casos de uso en clase + `calcular_stats_rutero.py`, funciones de stats/filtrado, no una clase, + `__init__.py`) — recuento real vía `ls src/application/use_cases/*.py`. Los ya existentes: `CargarRutero`, `ObtenerRuteroDia`, `ObtenerSiguienteCliente`, `ObtenerClienteEspecifico`, `OrdenarLlamadaCliente`, `RegistrarLlamada`, `RegistrarNoContesta`, `CorregirResultado`, `RegistrarNovedad`, `RegistrarFinLlamada`, `EliminarRuteroDia`, `GestionarNotasCliente`, `ExportarReporte`, `ListarAsesores`, `SeleccionarAsesor`, `ObtenerHistorial`, `ObtenerDatosTarjetaCliente`, `ObtenerDashboardNovedades`, `BuscarClientes`, `ObtenerHistorialClienteAsesor`, `AnularNovedad`, `EditarCliente`, `ExportarRuteroExcel`, `EditarFranjaHoraria`, `RegistrarPedido`, `ObtenerHistorialPedidosCliente`, `ObtenerSugerenciasPedido`. Nuevo desde el checkpoint anterior (pedidos/formato nuevo/teléfono secundario): `ObtenerHistorialCambiosCliente`. `EditarCliente` ahora recibe también (opcionalmente) `CambioClienteRepository` y un `asesor`, para el registro automático de correcciones (mismo caso de uso, no uno nuevo); `ExportarReporte` ahora recibe también `CambioClienteRepository`, para la segunda hoja del reporte.
 
 ### `src/infrastructure/adapters/`
 Implementaciones concretas de los puertos de `domain`:
-- `supabase_cliente_repository.py`, `supabase_llamada_repository.py`, `supabase_nota_cliente_repository.py`, `supabase_asesor_repository.py` → implementan los repos usando el cliente Supabase (PostgREST).
+- `supabase_cliente_repository.py`, `supabase_llamada_repository.py`, `supabase_nota_cliente_repository.py`, `supabase_asesor_repository.py`, `supabase_pedido_repository.py`, `supabase_cambio_cliente_repository.py` (nuevo) → implementan los repos usando el cliente Supabase (PostgREST).
 - `excel_rutero_parser.py` → implementa `RuteroParser` usando pandas/openpyxl.
 - `websocket_telefono_gateway.py` → implementa `TelefonoGateway` sobre WebSocket nativo de FastAPI.
 - `src/infrastructure/supabase_client.py` → singleton lazy del cliente Supabase (`create_client(supabase_url, supabase_key)`), credenciales desde `src/config.py` (`pydantic-settings`).
@@ -28,9 +29,9 @@ Implementaciones concretas de los puertos de `domain`:
 Capa de composición y transporte HTTP/WS:
 - `main.py` → instancia FastAPI, monta `/static`, registra middleware de identidad de asesor, incluye routers, define `GET /`.
 - `dependencies.py` → **composition root**: fábricas `get_*` que arman cada caso de uso con sus adapters concretos, por request (excepto el gateway WS que es singleton de proceso porque mantiene conexiones vivas en memoria).
-- `routers/*.py` → 9 routers (`asesor`, `cola`, `llamadas`, `notas`, `reportes`, `rutero`, `telefono`, **`dashboard` (nuevo)**, **`clientes` (nuevo)**), cada uno recibe casos de uso vía `Depends(get_*)`.
+- `routers/*.py` → 10 routers (`asesor`, `cola`, `llamadas`, `notas`, `reportes`, `rutero`, `telefono`, `dashboard`, `clientes`, **`pedidos` (nuevo)**), cada uno recibe casos de uso vía `Depends(get_*)`.
 - `templates_config.py` → instancia `Jinja2Templates`, registra funciones Jinja globales: `telefono_valido`, `dia_visita_invalido`, `normalizar_telefono_whatsapp`, `link_whatsapp_no_contesto`.
-- `templates/` y `templates/partials/` → vistas Jinja2 + HTMX. Nuevas desde el checkpoint anterior: `buscador_clientes.html`, `dashboard_novedades.html`, `partials/resultados_clientes.html`, `partials/historial_cliente_novedades.html`, `partials/ficha_cliente.html`.
+- `templates/` y `templates/partials/` → vistas Jinja2 + HTMX. Nuevas desde el checkpoint anterior (pedidos/formato nuevo/teléfono secundario): `partials/historial_cambios_cliente.html` (historial de correcciones en la ficha, colapsable con carga diferida vía `hx-trigger="toggle once"`). (`configurar_codigo_asesor.html`, `partials/historial_pedidos_cliente.html`, `buscador_clientes.html`, `dashboard_novedades.html`, `partials/resultados_clientes.html`, `partials/historial_cliente_novedades.html`, `partials/ficha_cliente.html` ya existían desde checkpoints anteriores.)
 - `static/` → CSS de Tailwind compilado localmente y `htmx.min.js`, servidos vía `StaticFiles`.
 
 **Reconstrucción de `tailwind.css` — procedimiento no escrito hasta ahora en ningún documento, y necesario cada vez que se agregan clases Tailwind nuevas a una plantilla:**
@@ -68,7 +69,7 @@ Jinja2 + HTMX + JS inline + Tailwind CSS compilado localmente (build v3 vía CLI
 ## Flujo de una llamada completo
 1. Asesora en "vista enfocada" pulsa Llamar → `POST /cola/llamar`.
 2. `cola.py` resuelve el `telefono_id` vinculado al asesor actual (tabla `asesores`).
-3. `OrdenarLlamadaCliente` (caso de uso) obtiene teléfono/nombre del cliente desde el repo (no confía en el navegador), genera `llamada_id` (UUID), persiste esa asociación en `rutero_clientes.llamada_id` **antes** de enviar la orden, y delega en `TelefonoGateway.ordenar_llamada`.
+3. `OrdenarLlamadaCliente` (caso de uso) obtiene teléfono/teléfono2/nombre del cliente desde el repo (no confía en el navegador: solo recibe una etiqueta `principal`/`secundario`, nunca un número), resuelve y valida el número según esa etiqueta, genera `llamada_id` (UUID), persiste esa asociación en `rutero_clientes.llamada_id` **antes** de enviar la orden, y delega en `TelefonoGateway.ordenar_llamada`. El contrato WebSocket no cambia: el teléfono Android solo recibe un `numero` ya resuelto, igual que siempre.
 4. `WebSocketTelefonoGateway` valida que la sesión del teléfono esté conectada y disponible, y envía `{"tipo":"llamar",...}` por WS.
 5. El teléfono Android marca, y reporta de vuelta `estado_llamada: OFFHOOK` y luego `estado_llamada: IDLE` (con `duracion_seg`) cuando cuelga.
 6. Al recibir `IDLE`, el gateway dispara el hook `on_llamada_finalizada`, que ejecuta `RegistrarFinLlamada` → persiste la duración en `rutero_clientes` (búsqueda por `llamada_id`).
