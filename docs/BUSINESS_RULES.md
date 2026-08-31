@@ -68,9 +68,24 @@
 **Estado:** CONFIRMADA
 
 ### BR-014 — Eliminación de rutero preserva historial del cliente
-**Regla (según diseño en `schema.sql`):** Al eliminar el rutero de un día, las novedades de los clientes de ese rutero no deben perderse — el FK `novedades.rutero_cliente_id` queda, al final del script, como `ON DELETE SET NULL` (la novedad sobrevive sin ese vínculo, pero conserva `cliente_id`). Las notas permanentes nunca están en riesgo porque no dependen del rutero (ver BR-008).
-**Fuente:** `database/schema.sql`. El archivo declara la FK inicialmente con `ON DELETE CASCADE` (`schema.sql:50`), y más adelante (`schema.sql:144-146`) la elimina y la recrea con `ON DELETE SET NULL`. El estado SET NULL solo se alcanza si el script se ejecuta completo y en orden.
-**Estado:** CONFIRMADA **como resultado final del script de esquema del repositorio, ejecutado completo y en orden**. Que ese resultado esté efectivamente aplicado en la base de datos de producción es **PENDIENTE DE VERIFICACIÓN EN PRODUCCIÓN** (ver `CURRENT_STATE.md`) — una ejecución parcial del script, o la tabla creada antes de que existiera el `ALTER` de las líneas 144-146, podría haber dejado `CASCADE` en la instancia real. No se debe asumir SET NULL como garantizado en producción hasta confirmarlo.
+**Regla:** Al eliminar el rutero de un día, las novedades de los clientes de ese rutero no se pierden — el FK `novedades.rutero_cliente_id` es `ON DELETE SET NULL` (la novedad sobrevive sin ese vínculo, pero conserva `cliente_id`). Las notas permanentes nunca están en riesgo porque no dependen del rutero (ver BR-008).
+**Fuente:** `database/schema.sql`. El archivo declara la FK inicialmente con `ON DELETE CASCADE` (`schema.sql:50`), y más adelante (`schema.sql:144-146`) la elimina y la recrea con `ON DELETE SET NULL`.
+**Estado:** CONFIRMADA — verificada por el usuario directamente en producción (ya no es un pendiente; ver `CURRENT_STATE.md`).
+
+### BR-017 — Anulación de novedades (soft-delete)
+**Regla:** Una novedad puede anularse pero nunca se borra físicamente. Anular marca `anulada = true` y guarda un `anulada_motivo` obligatorio; una novedad ya anulada no puede volver a anularse. Solo el asesor que la creó puede anularla (verificado en servidor contra la cookie de sesión, no contra lo que envíe el navegador). Una novedad anulada deja de contar en el dashboard de novedades y desaparece de la exportación del reporte de excepciones (`get_problematicos_del_dia`), pero sigue visible, marcada, en el historial del cliente.
+**Fuente:** `src/application/use_cases/anular_novedad.py`, `POST /clientes/novedades/{id}/anular`, `database/migration_novedades_dashboard.sql` (columnas `anulada`/`anulada_motivo`).
+**Estado:** CONFIRMADA
+
+### BR-018 — Franja horaria preferida: preferencia blanda, nunca reordena
+**Regla:** Un cliente puede tener una franja horaria preferida (`franja_desde`/`franja_hasta`), permanente y editable. Es puramente informativa: NO bloquea ninguna llamada, NO excluye al cliente de la cola, y NO cambia el orden en que `get_siguiente_en_cola` decide a quién llamar — solo agrega un aviso visual si la hora actual (Colombia) está fuera de esa franja.
+**Fuente:** `src/domain/servicios/franja_horaria.py` (`esta_fuera_de_franja`), `src/infrastructure/adapters/supabase_llamada_repository.py` (`_enriquecer_fila`, con una consulta separada que no toca el `select()` de `get_siguiente_en_cola`), `partials/vista_enfocada.html`.
+**Estado:** CONFIRMADA
+
+### BR-019 — Exportación del rutero completo con `Cod Cliente` como texto
+**Regla:** El rutero completo de la semana (12 columnas, formato original del Excel) se exporta filtrando por los `rutero_dias` del asesor de la sesión — nunca desde la tabla `clientes` completa, que es global y contiene clientes de otros ruteros. Un cliente que aparece en varios días de la semana (BR-011) sale una sola vez. La celda `Cod Cliente` se fuerza a formato de texto (`number_format="@"`, valor escrito como `str`) para conservar los ceros a la izquierda (ej. `000373587`) — sin esto, el archivo quedaría inservible para reimportar.
+**Fuente:** `src/application/use_cases/exportar_rutero_excel.py`, `GET /rutero/exportar-completo`.
+**Estado:** CONFIRMADA
 
 ### BR-015 — Confirmación obligatoria antes de eliminar un rutero
 **Regla:** Antes de borrar el rutero de un día, el sistema muestra un resumen (total de clientes y cuántos ya fueron llamados) y requiere confirmación explícita de la asesora.

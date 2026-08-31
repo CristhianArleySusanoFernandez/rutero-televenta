@@ -12,13 +12,16 @@ Dar a las asesoras de televenta una herramienta web para gestionar su rutero dia
 Antes, el proceso de televenta dependía de ruteros en Excel gestionados manualmente, sin cola de llamadas ordenada, sin registro centralizado de novedades/notas por cliente, y sin integración con el teléfono físico desde el que se marca. El sistema centraliza esto en una app web + un teléfono Android controlado remotamente.
 
 ## Qué proceso de televenta automatiza
-- Carga del rutero semanal desde un archivo Excel.
+- Carga del rutero semanal desde un archivo Excel (por lotes: 18 peticiones a Supabase en vez de ~1240 para 620 clientes).
 - Distribución automática de los clientes por día de visita.
 - Cola ordenada de llamadas pendientes, con reintentos y reagendamiento.
 - Orden de marcación al teléfono Android vía WebSocket.
-- Registro de resultado de la llamada (contestó / no contestó / novedad).
-- Historial de novedades y notas permanentes por cliente.
-- Exportación de reporte de resultados del día.
+- Registro de resultado de la llamada (contestó / no contestó / novedad), con corrección posterior.
+- Historial de novedades y notas permanentes por cliente; anulación (sin borrar) de novedades que ya no aplican.
+- Dashboard de novedades por día/semana/mes.
+- Búsqueda de clientes fuera de la cola, con edición de sus datos y de su franja horaria preferida (aviso, no bloqueo).
+- Aviso al cliente por WhatsApp cuando no se le pudo contactar.
+- Exportación de reporte de excepciones del día y exportación del rutero completo de la semana (para volver a subirlo).
 - Gestión de múltiples asesoras trabajando en paralelo, cada una con su propio teléfono.
 
 ## Usuarios del sistema
@@ -44,7 +47,7 @@ Antes, el proceso de televenta dependía de ruteros en Excel gestionados manualm
 FastAPI, Uvicorn, Jinja2Templates, HTMX, Tailwind CSS v3 (build local), pandas + openpyxl (parseo de Excel), Supabase (`supabase-py`), pydantic-settings, WebSockets nativos de FastAPI, PyInstaller.
 
 ## Estado general
-Repositorio activo, working tree limpio en `main` al momento de esta inspección (commit `ee28eaf`). Funcionalidad principal implementada y usada. No existen tests automatizados. Ver detalle verificado en `CURRENT_STATE.md`.
+Repositorio activo en `main`, último commit `0b304f5` al momento de esta inspección. Funcionalidad principal implementada y usada, incluyendo dashboard de novedades, buscador/edición de clientes, franja horaria preferida y exportación del rutero completo. Todas las migraciones de este checkpoint fueron ejecutadas y verificadas por el usuario en la instancia real de Supabase. Sigue sin existir ningún test automatizado — toda la verificación se hizo manualmente. Ver detalle completo, endpoints exactos y deuda técnica conocida en `CURRENT_STATE.md`.
 
 ## Documentos relacionados
 - `CURRENT_STATE.md` — estado verificado desde el código.

@@ -68,7 +68,7 @@
 **Decisión:** Cambiar el FK `novedades.rutero_cliente_id` de `ON DELETE CASCADE` a `ON DELETE SET NULL`.
 **Motivo:** Al implementar la funcionalidad de "eliminar rutero cargado", se detectó que el comportamiento CASCADE original borraría también las novedades de los clientes de ese rutero al eliminarlo — contradiciendo el requisito explícito del usuario de que el historial de novedades es del cliente, no del rutero, y debe sobrevivir a la eliminación.
 **Alternativas consideradas:** NO DETERMINADO DESDE EL REPOSITORIO (no se documentan alternativas exploradas distintas de SET NULL).
-**Estado:** ACTIVA en el archivo `database/schema.sql` del repositorio. **PENDIENTE DE VERIFICACIÓN EN PRODUCCIÓN** que esta migración se haya ejecutado realmente sobre la instancia de Supabase en uso (ver `CURRENT_STATE.md`).
+**Estado:** ACTIVA. Verificada por el usuario directamente en producción — ya no es un pendiente (ver `CURRENT_STATE.md`).
 
 ### DEC-012 — Eliminación de rutero requiere confirmación con resumen previo
 **Decisión:** Antes de borrar un rutero de un día, mostrar cuántos clientes tiene y cuántos ya fueron llamados, y exigir confirmación explícita.
@@ -87,3 +87,33 @@
 **Motivo:** MOTIVO NO DETERMINADO DESDE EL REPOSITORIO.
 **Alternativas consideradas:** NO DETERMINADO DESDE EL REPOSITORIO.
 **Estado:** ACTIVA — riesgo de seguridad documentado en `CURRENT_STATE.md`/histórico de inspección, no una decisión que este documento cuestione, solo registre.
+
+### DEC-015 — Carga de rutero por lotes (upsert masivo en vez de fila por fila)
+**Decisión:** Reemplazar el patrón N+1 de `cargar_rutero.py` (un `upsert`/`crear_llamada` por cliente en un bucle) por un `upsert_lote()`/`crear_llamadas_lote()` por día, cada uno en una sola petición a Supabase con una lista de filas.
+**Motivo:** Rendimiento — la carga de un rutero real (620 clientes, 6 días) tardaba minutos por hacer hasta ~1240 peticiones HTTP secuenciales; con el cambio bajó a 18 peticiones. Diagnosticado y cuantificado explícitamente antes de implementar (tarea de diagnóstico previa a la de diseño).
+**Alternativas consideradas:** Aumentar el timeout/paralelizar las peticiones individuales (descartada: no ataca la causa, solo la disimula); una única transacción SQL directa (descartada: no hay acceso a SQL crudo, ver DEC-002).
+**Estado:** ACTIVA — commit `e41a3a0`.
+
+### DEC-016 — El Excel manda: la carga sobrescribe cualquier corrección hecha en la app (opción A)
+**Decisión:** Ante el conflicto "¿qué prevalece si la asesora corrige un dato de cliente en la app y luego se recarga un Excel con el dato viejo?", se optó por mantener el upsert como merge simple: el Excel siempre sobrescribe los campos que trae. No se implementó ningún mecanismo de protección de campos editados manualmente (por ejemplo, marcar un campo como "no pisar").
+**Motivo:** Simplicidad y consistencia con el comportamiento ya existente del upsert; la alternativa (proteger campos editados) requeriría rediseñar el modelo de conflicto y no fue solicitada. Riesgo aceptado explícitamente: una corrección de nombre/dirección/teléfono/etc. hecha desde la app se pierde si se recarga un Excel con el dato antiguo.
+**Alternativas consideradas:** Proteger campos editados manualmente con una marca de "no sobrescribir" (rechazada por complejidad, no descartada para el futuro); invertir la fuente de verdad hacia la app (rechazada, el Excel sigue siendo el flujo operativo real de la empresa).
+**Estado:** ACTIVA. Consecuencia directa y deliberada: la franja horaria (`franja_desde`/`franja_hasta`, ver DEC-017) se dejó fuera de `_to_row()` precisamente para no heredar este riesgo, porque el Excel nunca trae ese dato.
+
+### DEC-017 — Franja horaria como aviso, nunca como criterio de reordenación de la cola
+**Decisión:** La franja horaria preferida de un cliente solo genera un aviso visual (`fuera_de_franja`); no participa en ningún `.order()` ni filtro de `get_siguiente_en_cola`, ni en la lógica de reintentos o reagendamiento.
+**Motivo:** Evitar el riesgo de romper BR-001 (orden de cola), BR-002 (reintentos), BR-003 (reagendamiento) o BR-005 (cola terminada) sin tener una suite de tests que detecte una regresión — el proyecto no tiene tests automatizados (ver `CURRENT_STATE.md`), así que cualquier cambio a la lógica de orden es de alto riesgo y difícil de verificar exhaustivamente. Se prefirió la solución de menor riesgo: mostrar información, no actuar sobre ella.
+**Alternativas consideradas:** Usar la franja para reordenar la cola dinámicamente (rechazada: alto riesgo de romper reglas confirmadas sin cobertura de tests); excluir temporalmente de la cola a un cliente fuera de franja (rechazada explícitamente: el requisito decía "la llamada se hace siempre").
+**Estado:** ACTIVA — commit `0b304f5`.
+
+### DEC-018 — Exclusión de correcciones de resultado del dashboard mediante un prefijo compartido
+**Decisión:** Las correcciones de resultado (`CorregirResultado`) se identifican en el dashboard de novedades por un prefijo literal (`[Corrección`) en el campo `observacion`, extraído a una constante compartida (`PREFIJO_CORRECCION` en `corregir_resultado.py`) e importada por el caso de uso del dashboard, en vez de duplicar el literal.
+**Motivo:** Una corrección de resultado es un registro de auditoría (qué cambió y cuándo), no una novedad comercial — contarla en el dashboard de novedades registradas inflaría el número real de novedades del asesor. Usar una constante compartida (no dos copias del mismo literal) evita que el filtro del dashboard se desincronice silenciosamente si el formato del texto de corrección cambia en el futuro.
+**Alternativas consideradas:** Una columna booleana explícita `es_correccion` en `novedades` (más robusto, pero requiere migración; no se hizo porque el prefijo ya identificaba el caso sin cambios de esquema).
+**Estado:** ACTIVA — commit `75dc068`.
+
+### DEC-019 — Aviso al cliente por enlace `wa.me`, sin API de WhatsApp
+**Decisión:** El aviso de "te llamamos y no contestaste" se implementa como un enlace `https://wa.me/<numero>?text=<mensaje>` que la asesora abre manualmente, en vez de integrar la API de WhatsApp Business (envío automático).
+**Motivo:** Costo e infraestructura — la API de WhatsApp Business requiere cuenta de negocio verificada, aprobación de plantillas de mensaje y, en general, costo por conversación; un enlace `wa.me` no tiene ningún requisito de backend ni dependencia nueva y cumple el mismo objetivo (mensaje pre-escrito, un clic). Restricción explícita del usuario: "NO integres ninguna API de WhatsApp ni añadas dependencias nuevas".
+**Alternativas consideradas:** API oficial de WhatsApp Business (rechazada por costo/infraestructura); SMS (no evaluado, fuera del alcance solicitado).
+**Estado:** ACTIVA — commit `75dc068`.
