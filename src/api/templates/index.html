@@ -126,14 +126,19 @@
     >
         📥 Descargar rutero completo (para reimportar)
     </a>
-    <a
-        id="link-exportar"
-        href="/reportes/exportar?fecha={{ hoy.isoformat() }}"
-        title="Reporte de excepciones del día: novedades, saltados y no contestaron — para el supervisor."
-        class="inline-flex items-center gap-2 bg-marca hover:bg-marca-hover text-white font-semibold px-5 py-2.5 rounded-lg shadow-sm transition"
-    >
-        📊 Exportar reporte de excepciones
-    </a>
+    <div class="flex flex-col items-end gap-1">
+        <a
+            id="link-exportar"
+            href="/reportes/exportar?fecha={{ hoy.isoformat() }}"
+            title="Reporte de excepciones del día: novedades, saltados y no contestaron — para el supervisor."
+            class="inline-flex items-center gap-2 bg-marca hover:bg-marca-hover text-white font-semibold px-5 py-2.5 rounded-lg shadow-sm transition"
+        >
+            📊 Exportar reporte de excepciones
+        </a>
+        <p class="text-xs text-gray-400">
+            Incluye una segunda hoja con las correcciones de datos de la semana, para tu jefe.
+        </p>
+    </div>
 </div>
 
 {% endblock %}
