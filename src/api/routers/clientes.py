@@ -41,6 +41,11 @@ class EditarClienteBody(BaseModel):
     ciudad: str | None = None
     telefono: str | None = None
     documento: str | None = None
+    email: str | None = None
+    telefono2: str | None = None
+    segmento: str | None = None
+    observacion_excel: str | None = None
+    dato_a_corregir: str | None = None
 
 
 class FranjaHorariaBody(BaseModel):

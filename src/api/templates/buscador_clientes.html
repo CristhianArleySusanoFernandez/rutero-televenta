@@ -81,6 +81,11 @@ async function guardarCliente(event, clienteId) {
         ciudad: form.ciudad.value,
         telefono: form.telefono.value,
         documento: form.documento.value,
+        email: form.email.value,
+        telefono2: form.telefono2.value,
+        segmento: form.segmento.value,
+        observacion_excel: form.observacion_excel.value,
+        dato_a_corregir: form.dato_a_corregir.value,
     };
     const resp = await fetch('/clientes/' + clienteId, {
         method: 'POST',

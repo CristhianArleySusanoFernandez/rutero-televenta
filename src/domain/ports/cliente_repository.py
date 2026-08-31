@@ -31,8 +31,8 @@ class ClienteRepository(ABC):
     @abstractmethod
     async def actualizar(self, cliente_id: str, datos: dict) -> Cliente:
         """
-        Actualiza SOLO los campos editables de un cliente: nombre,
-        razon_social, direccion, barrio, ciudad, telefono, documento.
+        Actualiza SOLO los campos editables de un cliente — ver
+        CAMPOS_EDITABLES en editar_cliente.py, la lista autoritativa.
         `datos` trae únicamente esas claves (ya validadas por el caso de
         uso) — nunca cod_cliente ni dias_visita, que no son editables.
         """
