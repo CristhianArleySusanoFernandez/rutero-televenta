@@ -21,6 +21,8 @@ class SupabaseClienteRepository(ClienteRepository):
             "ciudad": cliente.ciudad,
             "dias_visita": cliente.dias_visita,
             "telefono": cliente.telefono,
+            "novedad_excel": cliente.novedad_excel,
+            "asesor_campo": cliente.asesor_campo,
         }
 
     async def upsert(self, cliente: Cliente) -> Cliente:
@@ -71,6 +73,17 @@ class SupabaseClienteRepository(ClienteRepository):
         )
         return [self._to_entity(row) for row in (result.data or [])]
 
+    async def actualizar(self, cliente_id: str, datos: dict) -> Cliente:
+        result = (
+            self._db.table("clientes")
+            .update(datos)
+            .eq("id", cliente_id)
+            .execute()
+        )
+        if not result.data:
+            raise ValueError(f"Cliente '{cliente_id}' no existe")
+        return self._to_entity(result.data[0])
+
     async def get_by_cod(self, cod_cliente: str) -> Optional[Cliente]:
         result = (
             self._db.table("clientes")
@@ -107,4 +120,6 @@ class SupabaseClienteRepository(ClienteRepository):
             ciudad=row.get("ciudad"),
             dias_visita=row.get("dias_visita"),
             telefono=row.get("telefono"),
+            novedad_excel=row.get("novedad_excel"),
+            asesor_campo=row.get("asesor_campo"),
         )

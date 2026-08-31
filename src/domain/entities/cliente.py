@@ -16,4 +16,6 @@ class Cliente:
     ciudad: Optional[str] = None
     dias_visita: Optional[str] = None
     telefono: Optional[str] = None
+    novedad_excel: Optional[str] = None
+    asesor_campo: Optional[str] = None
     created_at: Optional[datetime] = None

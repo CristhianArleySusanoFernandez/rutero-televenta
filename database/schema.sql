@@ -80,6 +80,16 @@ ALTER TABLE novedades ADD COLUMN IF NOT EXISTS asesor TEXT;
 ALTER TABLE novedades ADD COLUMN IF NOT EXISTS anulada BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE novedades ADD COLUMN IF NOT EXISTS anulada_motivo TEXT;
 
+-- Columnas del Excel que antes se descartaban al cargar el rutero.
+-- novedad_excel: texto libre de la columna "Novedades" del Excel (lo que
+-- anota el asesor de campo) — sin relación con la tabla `novedades` de
+-- arriba, nombrada distinto a propósito para no confundirlas.
+-- asesor_campo: quien visita al cliente en campo según la columna
+-- "ASESOR" del Excel — solo informativo, no determina el dueño del
+-- rutero de televenta (BR-016).
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS novedad_excel TEXT;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS asesor_campo TEXT;
+
 -- Ampliar el CHECK de estado en rutero_clientes existente
 -- (Supabase no permite ALTER CHECK directamente; se recrea la constraint)
 ALTER TABLE rutero_clientes DROP CONSTRAINT IF EXISTS rutero_clientes_estado_check;
