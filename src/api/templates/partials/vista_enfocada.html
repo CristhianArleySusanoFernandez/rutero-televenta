@@ -3,188 +3,65 @@
 {% set tel_ok = telefono_valido(cliente.telefono) %}
 {% set link_whatsapp = link_whatsapp_no_contesto(cliente.telefono, cliente.nombre) %}
 
-<div id="vista-enfocada" class="max-w-lg mx-auto space-y-4">
+<!-- Dos columnas en pantalla ancha: la izquierda es el flujo de llamada
+     (lo que la asesora usa en cada cliente, sin scroll); la derecha es
+     contexto y acciones poco frecuentes (se consulta, no se acciona a
+     cada rato). En pantalla estrecha se apila en una sola columna, con
+     la izquierda PRIMERO en el DOM. -->
+<div id="vista-enfocada" class="lg:max-w-5xl mx-auto lg:grid lg:grid-cols-5 lg:gap-4 lg:items-start space-y-3 lg:space-y-0">
 
-    <!-- Aviso reagendamiento -->
-    {% if cliente.adelantado %}
-    <div class="bg-amber-100 border-2 border-amber-400 rounded-xl px-4 py-3 flex items-start gap-3">
-        <span class="text-2xl">⏰</span>
-        <div>
-            <p class="font-bold text-amber-900">Reagendado — se adelantó</p>
-            <p class="text-sm text-amber-800">
-                Aún faltaban
-                <strong>{{ cliente.minutos_faltantes }} min</strong>
-                para la hora acordada con el cliente
-            </p>
-        </div>
-    </div>
-    {% elif cliente.viene_de_reagendamiento %}
-    <div class="bg-amber-100 border-2 border-amber-400 rounded-xl px-4 py-3 flex items-start gap-3">
-        <span class="text-2xl">⏰</span>
-        <div>
-            <p class="font-bold text-amber-900">Reagendado</p>
-            <p class="text-sm text-amber-800">
-                Este cliente pidió volver a llamar
-                {% if cliente.minutos_reagendado is not none %}
-                hace <strong>{{ cliente.minutos_reagendado }} min</strong>
-                {% endif %}
-            </p>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Aviso franja horaria: fuera de la hora que el cliente prefiere.
-         Blanda — nunca bloquea nada, solo ayuda a la asesora a excusarse. -->
-    {% if cliente.fuera_de_franja %}
-    <div class="bg-amber-100 border-2 border-amber-400 rounded-xl px-4 py-3 flex items-start gap-3">
-        <span class="text-2xl">⏰</span>
-        <div>
-            <p class="font-bold text-amber-900">Fuera de su franja preferida</p>
-            <p class="text-sm text-amber-800">
-                Este cliente prefiere que lo llamen entre
-                <strong>{{ cliente.franja_desde.strftime('%H:%M') }}</strong> y
-                <strong>{{ cliente.franja_hasta.strftime('%H:%M') }}</strong>.
-                Puedes ofrecerle disculpas por llamar fuera de ese horario.
-            </p>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Aviso del formato nuevo de Excel: observación de campo y teléfono
-         alterno. Solo informativos, no cambian el flujo de la llamada. -->
-    {% if cliente.observacion_excel %}
-    <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
-        <p class="text-xs font-bold text-blue-800 uppercase tracking-wide mb-1">📋 Observación del último Excel</p>
-        <p class="text-sm text-blue-900">{{ cliente.observacion_excel }}</p>
-    </div>
-    {% endif %}
-    {% if cliente.novedad_excel %}
-    <div class="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
-        <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">📝 Novedad del Excel</p>
-        <p class="text-sm text-gray-700">{{ cliente.novedad_excel }}</p>
-    </div>
-    {% endif %}
-
-    <!-- Aviso teléfono inválido (error real → rojo ladrillo de alerta) -->
-    {% if not tel_ok %}
-    <div class="bg-red-50 border-2 border-alerta rounded-xl px-4 py-3 flex items-start gap-3">
-        <span class="text-2xl">📵</span>
-        <div>
-            <p class="font-bold text-alerta">Teléfono inválido o faltante</p>
-            <p class="text-sm text-alerta">
-                El número registrado es
-                <strong>"{{ cliente.telefono or 'vacío' }}"</strong>
-                — no se puede llamar. Se recomienda saltar este cliente.
-            </p>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Notas permanentes -->
-    <div id="notas-enfocado-{{ rc_id }}">
-        {% if cliente.notas_permanentes %}
-        <div class="bg-yellow-50 border-2 border-yellow-400 rounded-xl p-4 space-y-1">
-            <p class="text-xs font-bold text-yellow-800 uppercase tracking-widest mb-2">📌 Notas permanentes</p>
-            {% for nota in cliente.notas_permanentes %}
-            <p class="text-sm text-yellow-900">• {{ nota.nota }}</p>
-            {% endfor %}
-            <button
-                class="text-xs text-yellow-600 hover:text-yellow-900 underline mt-1"
-                hx-get="/notas/{{ cli_id }}"
-                hx-target="#notas-enfocado-{{ rc_id }}"
-                hx-swap="outerHTML"
-            >Gestionar notas</button>
-        </div>
-        {% else %}
-        <div class="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-2 flex items-center justify-between">
-            <span class="text-xs text-yellow-700">📌 Sin notas permanentes</span>
-            <button
-                class="text-xs text-yellow-600 hover:text-yellow-900 underline"
-                hx-get="/notas/{{ cli_id }}"
-                hx-target="#notas-enfocado-{{ rc_id }}"
-                hx-swap="outerHTML"
-            >+ Agregar nota</button>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Pedidos recientes: texto libre, sólo informativo. La señal de
-         inactividad únicamente aparece si hay al menos un pedido — sin
-         historial no se sabe nada del cliente, no es lo mismo que
-         llevar tiempo sin comprar. -->
-    <div class="bg-white border border-gray-200 rounded-xl p-4 space-y-2">
-        <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">🛒 Pedidos recientes</p>
-        {% if cliente.pedidos_recientes %}
-        <div class="space-y-1">
-            {% for p in cliente.pedidos_recientes %}
-            <div class="flex justify-between gap-2 text-sm">
-                <span class="text-gray-700">{{ p.detalle }}</span>
-                <span class="text-gray-400 whitespace-nowrap text-xs">{{ p.fecha }}</span>
-            </div>
-            {% endfor %}
-        </div>
-        {% if cliente.semanas_sin_ultima_compra is not none %}
-            {% if cliente.semanas_sin_ultima_compra >= 4 %}
-            <p class="text-xs font-semibold text-alerta bg-red-50 border border-red-200 rounded-lg px-2 py-1.5 mt-1">
-                ⚠️ Última compra hace {{ cliente.semanas_sin_ultima_compra }} semana{{ 's' if cliente.semanas_sin_ultima_compra != 1 else '' }} — lleva tiempo sin pedir
-            </p>
-            {% else %}
-            <p class="text-xs text-gray-400 mt-1">
-                Última compra hace {{ cliente.semanas_sin_ultima_compra }} semana{{ 's' if cliente.semanas_sin_ultima_compra != 1 else '' }}
-            </p>
-            {% endif %}
-        {% endif %}
-        {% else %}
-        <p class="text-xs text-gray-400 italic">Sin pedidos registrados todavía.</p>
-        {% endif %}
-        <button
-            onclick="abrirFormPedido('{{ rc_id }}', '{{ cli_id }}')"
-            class="text-xs text-marca hover:underline font-medium">
-            + Registrar pedido
-        </button>
-        <div id="slot-pedido-enfocado"></div>
-    </div>
-
-    <!-- Tarjeta principal -->
-    <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6 space-y-4">
+    <!-- ══════════════════ Columna izquierda: flujo de llamada ══════════════════ -->
+    <div class="lg:col-span-3 bg-white rounded-2xl shadow-md border border-gray-100 p-4 space-y-3">
 
         <!-- Encabezado -->
         <div>
-            <h2 class="text-2xl font-bold text-marca leading-tight">{{ cliente.nombre }}</h2>
+            <h2 class="text-xl font-bold text-marca leading-tight">{{ cliente.nombre }}</h2>
             {% if cliente.razon_social %}
             <p class="text-sm text-gray-500 mt-0.5">{{ cliente.razon_social }}</p>
             {% endif %}
-            <div class="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
+            <div class="flex flex-wrap gap-3 mt-1 text-xs text-gray-500">
                 {% if cliente.ciudad or cliente.barrio %}
                 <span>📍 {{ cliente.ciudad }}{% if cliente.barrio %} — {{ cliente.barrio }}{% endif %}</span>
                 {% endif %}
                 {% if cliente.dias_visita %}
                 <span>📅 {{ cliente.dias_visita }}</span>
                 {% endif %}
-                {% if cliente.franja_desde and cliente.franja_hasta %}
-                <span>⏰ Prefiere {{ cliente.franja_desde.strftime('%H:%M') }}-{{ cliente.franja_hasta.strftime('%H:%M') }}</span>
-                {% endif %}
             </div>
         </div>
 
-        <!-- Teléfono -->
-        {% if tel_ok %}
-        <div class="bg-cian-suave border border-cian rounded-xl p-4 flex items-center justify-between gap-3">
+        <!-- Aviso teléfono inválido (error real → rojo ladrillo de alerta) -->
+        {% if not tel_ok %}
+        <div class="bg-red-50 border-2 border-alerta rounded-xl px-3 py-2 flex items-start gap-2">
+            <span class="text-xl">📵</span>
             <div>
-                <p class="text-xs text-marca font-medium uppercase tracking-wide">Teléfono</p>
-                <p class="text-3xl font-bold text-marca tracking-wider">{{ cliente.telefono }}</p>
+                <p class="font-bold text-alerta text-sm">Teléfono inválido o faltante</p>
+                <p class="text-xs text-alerta">
+                    El número registrado es
+                    <strong>"{{ cliente.telefono or 'vacío' }}"</strong>
+                    — no se puede llamar. Se recomienda saltar este cliente.
+                </p>
             </div>
-            <div class="flex flex-col gap-2">
+        </div>
+        {% endif %}
+
+        <!-- Teléfono: compacto, no ocupa todo el ancho de la columna -->
+        {% if tel_ok %}
+        <div class="bg-cian-suave border border-cian rounded-xl px-3 py-2 flex items-center justify-between gap-3">
+            <div>
+                <p class="text-[10px] text-marca font-medium uppercase tracking-wide">Teléfono</p>
+                <p class="text-2xl font-bold text-marca tracking-wider">{{ cliente.telefono }}</p>
+            </div>
+            <div class="flex gap-2">
                 <!-- Sin onclick: se maneja por delegación en #contenedor-enfocado
                      (index.html), así sobrevive a cualquier swap de la vista -->
                 <button
                     data-accion="llamar-cliente"
                     data-rc-id="{{ rc_id }}"
-                    class="bg-marca hover:bg-marca-hover disabled:opacity-50 disabled:cursor-wait text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+                    class="bg-marca hover:bg-marca-hover disabled:opacity-50 disabled:cursor-wait text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition">
                     📞 Llamar
                 </button>
                 <button onclick="navigator.clipboard.writeText('{{ cliente.telefono }}')"
-                        class="bg-white hover:bg-marca-suave text-marca border border-marca text-sm font-medium px-4 py-2 rounded-lg transition">
+                        class="bg-white hover:bg-marca-suave text-marca border border-marca text-sm font-medium px-3 py-1.5 rounded-lg transition">
                     📋 Copiar
                 </button>
             </div>
@@ -198,131 +75,206 @@
         <button
             data-accion="llamar-secundario"
             data-rc-id="{{ rc_id }}"
-            class="w-full bg-purple-50 hover:bg-purple-100 disabled:opacity-50 disabled:cursor-wait text-purple-700 border border-purple-200 text-sm font-semibold px-4 py-2 rounded-lg transition">
+            class="w-full bg-purple-50 hover:bg-purple-100 disabled:opacity-50 disabled:cursor-wait text-purple-700 border border-purple-200 text-sm font-semibold px-3 py-1.5 rounded-lg transition">
             📞 Llamar al alterno ({{ cliente.telefono2 }})
         </button>
         {% endif %}
         {% else %}
-        <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
-            <span class="text-2xl">📵</span>
+        <div class="bg-red-50 border border-red-200 rounded-xl px-3 py-2 flex items-center gap-3">
+            <span class="text-xl">📵</span>
             <div>
-                <p class="text-xs text-alerta font-medium uppercase tracking-wide">Teléfono no válido</p>
-                <p class="text-lg font-semibold text-red-400 line-through">{{ cliente.telefono or '—' }}</p>
+                <p class="text-[10px] text-alerta font-medium uppercase tracking-wide">Teléfono no válido</p>
+                <p class="text-base font-semibold text-red-400 line-through">{{ cliente.telefono or '—' }}</p>
             </div>
         </div>
         {% endif %}
 
         <!-- Aviso segundo intento -->
         {% if cliente.estado == 'reintento_pendiente' %}
-        <div class="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700 font-medium">
+        <div class="bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 text-xs text-red-700 font-medium">
             ⚠️ Segundo intento — no contestó la primera vez
         </div>
         {% endif %}
 
-        <!-- Botones de resultado FINAL -->
+        <!-- Botones de resultado FINAL: siguen siendo la acción principal,
+             destacan por color y peso, no por altura. -->
         {% if tel_ok %}
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-2">
             <button
                 onclick="registrarResultado('{{ rc_id }}', 'contesto')"
-                class="bg-green-500 hover:bg-green-600 active:scale-95 text-white font-bold py-4 rounded-xl transition text-lg">
+                class="bg-green-500 hover:bg-green-600 active:scale-95 text-white font-bold py-2.5 rounded-xl transition text-base">
                 ✓ Contestó
             </button>
             <button
                 onclick="registrarResultado('{{ rc_id }}', 'no_contesto')"
-                class="bg-red-500 hover:bg-red-600 active:scale-95 text-white font-bold py-4 rounded-xl transition text-lg">
+                class="bg-red-500 hover:bg-red-600 active:scale-95 text-white font-bold py-2.5 rounded-xl transition text-base">
                 ✗ No contestó
             </button>
         </div>
-        {% if link_whatsapp %}
-        <!-- Sólo un enlace: no registra novedad ni cambia estado. Útil justo
-             antes o después de marcar "No contestó", mientras el cliente
-             sigue en pantalla. -->
-        <a href="{{ link_whatsapp }}" target="_blank" rel="noopener"
-           class="block text-center bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 font-semibold py-2 rounded-xl transition text-sm">
-            💬 Avisar por WhatsApp que no se pudo contactar
-        </a>
-        {% endif %}
         {% else %}
-        <!-- Teléfono inválido: los botones normales quedan deshabilitados -->
-        <div class="grid grid-cols-2 gap-3 opacity-30 pointer-events-none select-none">
-            <div class="bg-green-200 text-white font-bold py-4 rounded-xl text-lg text-center">✓ Contestó</div>
-            <div class="bg-red-200 text-white font-bold py-4 rounded-xl text-lg text-center">✗ No contestó</div>
+        <!-- Teléfono inválido: los botones normales quedan deshabilitados;
+             "Saltar" es la acción recomendada en su lugar. -->
+        <div class="grid grid-cols-2 gap-2 opacity-30 pointer-events-none select-none">
+            <div class="bg-green-200 text-white font-bold py-2.5 rounded-xl text-base text-center">✓ Contestó</div>
+            <div class="bg-red-200 text-white font-bold py-2.5 rounded-xl text-base text-center">✗ No contestó</div>
+        </div>
+        <button
+            onclick="saltarCliente('{{ rc_id }}', '{{ cli_id }}', 'Número equivocado / no existe')"
+            class="w-full bg-alerta hover:opacity-90 text-white font-bold py-2 rounded-xl transition text-sm ring-2 ring-alerta ring-offset-1">
+            ⏭ Saltar (número inválido)
+        </button>
+        {% endif %}
+
+        <!-- Slots inline de esta columna -->
+        <div id="slot-novedad-enfocado"></div>
+
+    </div>
+
+    <!-- ══════════════════ Columna derecha: contexto y acciones poco frecuentes ══════════════════ -->
+    <div class="lg:col-span-2 space-y-2">
+
+        <!-- Aviso reagendamiento -->
+        {% if cliente.adelantado %}
+        <div class="bg-amber-100 border-2 border-amber-400 rounded-xl px-3 py-2 flex items-start gap-2">
+            <span class="text-xl">⏰</span>
+            <div>
+                <p class="font-bold text-amber-900 text-sm">Reagendado — se adelantó</p>
+                <p class="text-xs text-amber-800">
+                    Aún faltaban
+                    <strong>{{ cliente.minutos_faltantes }} min</strong>
+                    para la hora acordada con el cliente
+                </p>
+            </div>
+        </div>
+        {% elif cliente.viene_de_reagendamiento %}
+        <div class="bg-amber-100 border-2 border-amber-400 rounded-xl px-3 py-2 flex items-start gap-2">
+            <span class="text-xl">⏰</span>
+            <div>
+                <p class="font-bold text-amber-900 text-sm">Reagendado</p>
+                <p class="text-xs text-amber-800">
+                    Este cliente pidió volver a llamar
+                    {% if cliente.minutos_reagendado is not none %}
+                    hace <strong>{{ cliente.minutos_reagendado }} min</strong>
+                    {% endif %}
+                </p>
+            </div>
         </div>
         {% endif %}
 
-        <!-- Divisor -->
-        <div class="border-t border-gray-100"></div>
+        <!-- Aviso franja horaria: fuera de la hora que el cliente prefiere.
+             Blanda — nunca bloquea nada, solo ayuda a la asesora a excusarse. -->
+        {% if cliente.fuera_de_franja %}
+        <div class="bg-amber-100 border-2 border-amber-400 rounded-xl px-3 py-2 flex items-start gap-2">
+            <span class="text-xl">⏰</span>
+            <div>
+                <p class="font-bold text-amber-900 text-sm">Fuera de su franja preferida</p>
+                <p class="text-xs text-amber-800">
+                    Este cliente prefiere que lo llamen entre
+                    <strong>{{ cliente.franja_desde.strftime('%H:%M') }}</strong> y
+                    <strong>{{ cliente.franja_hasta.strftime('%H:%M') }}</strong>.
+                    Puedes ofrecerle disculpas por llamar fuera de ese horario.
+                </p>
+            </div>
+        </div>
+        {% endif %}
 
-        <!-- Acciones secundarias -->
-        <div class="flex gap-2 flex-wrap">
-            {% if not tel_ok %}
-            <!-- Saltar destacado como acción recomendada cuando el teléfono es inválido -->
-            <button
-                onclick="saltarCliente('{{ rc_id }}', '{{ cli_id }}', 'Número equivocado / no existe')"
-                class="flex-1 bg-alerta hover:opacity-90 text-white font-bold py-3 rounded-xl transition text-sm ring-2 ring-alerta ring-offset-1">
-                ⏭ Saltar (número inválido)
-            </button>
+        <!-- Notas permanentes -->
+        <div id="notas-enfocado-{{ rc_id }}">
+            {% if cliente.notas_permanentes %}
+            <div class="bg-yellow-50 border-2 border-yellow-400 rounded-xl px-3 py-2 space-y-0.5">
+                <p class="text-[10px] font-bold text-yellow-800 uppercase tracking-widest mb-1">📌 Notas permanentes</p>
+                {% for nota in cliente.notas_permanentes %}
+                <p class="text-xs text-yellow-900">• {{ nota.nota }}</p>
+                {% endfor %}
+                <button
+                    class="text-[10px] text-yellow-600 hover:text-yellow-900 underline mt-1"
+                    hx-get="/notas/{{ cli_id }}"
+                    hx-target="#notas-enfocado-{{ rc_id }}"
+                    hx-swap="outerHTML"
+                >Gestionar notas</button>
+            </div>
             {% else %}
+            <div class="bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-1.5 flex items-center justify-between">
+                <span class="text-xs text-yellow-700">📌 Sin notas permanentes</span>
+                <button
+                    class="text-[10px] text-yellow-600 hover:text-yellow-900 underline"
+                    hx-get="/notas/{{ cli_id }}"
+                    hx-target="#notas-enfocado-{{ rc_id }}"
+                    hx-swap="outerHTML"
+                >+ Agregar nota</button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Pedidos recientes: texto libre, sólo informativo. -->
+        <div class="bg-white border border-gray-200 rounded-xl px-3 py-2 space-y-1">
+            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">🛒 Pedidos recientes</p>
+            {% if cliente.pedidos_recientes %}
+            <div class="space-y-0.5">
+                {% for p in cliente.pedidos_recientes %}
+                <div class="flex justify-between gap-2 text-xs">
+                    <span class="text-gray-700">{{ p.detalle }}</span>
+                    <span class="text-gray-400 whitespace-nowrap text-[10px]">{{ p.fecha }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% if cliente.semanas_sin_ultima_compra is not none %}
+                {% if cliente.semanas_sin_ultima_compra >= 4 %}
+                <p class="text-[11px] font-semibold text-alerta bg-red-50 border border-red-200 rounded-lg px-2 py-1 mt-1">
+                    ⚠️ Última compra hace {{ cliente.semanas_sin_ultima_compra }} semana{{ 's' if cliente.semanas_sin_ultima_compra != 1 else '' }} — lleva tiempo sin pedir
+                </p>
+                {% else %}
+                <p class="text-[11px] text-gray-400 mt-1">
+                    Última compra hace {{ cliente.semanas_sin_ultima_compra }} semana{{ 's' if cliente.semanas_sin_ultima_compra != 1 else '' }}
+                </p>
+                {% endif %}
+            {% endif %}
+            {% else %}
+            <p class="text-xs text-gray-400 italic">Sin pedidos registrados todavía.</p>
+            {% endif %}
+            <button
+                onclick="abrirFormPedido('{{ rc_id }}', '{{ cli_id }}')"
+                class="text-[11px] text-marca hover:underline font-medium">
+                + Registrar pedido
+            </button>
+            <div id="slot-pedido-enfocado"></div>
+        </div>
+
+        {% if link_whatsapp %}
+        <!-- Sólo un enlace: no registra novedad ni cambia estado. -->
+        <a href="{{ link_whatsapp }}" target="_blank" rel="noopener"
+           class="block text-center bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 font-semibold py-1.5 rounded-xl transition text-xs">
+            💬 Avisar por WhatsApp que no se pudo contactar
+        </a>
+        {% endif %}
+
+        {% if tel_ok %}
+        <div class="flex gap-2 flex-wrap">
             <button
                 onclick="abrirFormNovedadEnfocado('{{ rc_id }}', '{{ cli_id }}')"
-                class="flex-1 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 font-semibold py-2 rounded-xl transition text-sm">
+                class="flex-1 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 font-semibold py-1.5 rounded-xl transition text-xs">
                 ⚠ Registrar novedad
             </button>
             {% if historial %}
             <button
                 id="btn-hist-enf-{{ rc_id }}"
                 onclick="toggleHistorialEnfocado('{{ rc_id }}', '{{ cli_id }}')"
-                class="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 font-semibold py-2 rounded-xl transition text-sm">
+                class="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 font-semibold py-1.5 rounded-xl transition text-xs">
                 🔼 Ocultar
             </button>
             {% else %}
-            <span class="flex-1 text-center text-gray-400 border border-gray-100 py-2 rounded-xl text-sm select-none">
+            <span class="flex-1 text-center text-gray-400 border border-gray-100 py-1.5 rounded-xl text-xs select-none">
                 📋 Sin novedades previas
             </span>
             {% endif %}
             <button
                 onclick="abrirReagendar('{{ rc_id }}')"
-                class="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold py-2 rounded-xl transition text-sm">
+                class="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold py-1.5 rounded-xl transition text-xs">
                 ⏰ Reagendar
-            </button>
-            {% endif %}
-        </div>
-
-        <!-- Franja horaria preferida: solo guarda un dato del cliente para
-             la próxima vez, no toca el resultado de esta llamada ni avanza
-             la cola. Disponible ANTES de marcar Contestó/No contestó. -->
-        <div class="flex justify-end">
-            <button
-                onclick="abrirFormFranja('{{ rc_id }}', '{{ cli_id }}', '{{ cliente.franja_desde.strftime('%H:%M') if cliente.franja_desde else '' }}', '{{ cliente.franja_hasta.strftime('%H:%M') if cliente.franja_hasta else '' }}')"
-                class="text-xs text-gray-400 hover:text-marca underline">
-                ⏰ Registrar franja horaria preferida
-            </button>
-        </div>
-        <div id="slot-franja-enfocado"></div>
-
-        <!-- Corregir datos del cliente: solo un enlace al buscador, no toca
-             la cola ni ningún estado de esta pantalla. -->
-        <div class="flex justify-end">
-            <a href="/clientes/buscador?cliente_id={{ cli_id }}&nombre={{ cliente.nombre|urlencode }}"
-               class="text-xs text-gray-400 hover:text-marca underline">
-                ✏️ Corregir datos de este cliente
-            </a>
-        </div>
-
-        <!-- Botón Saltar genérico (disponible siempre, secundario cuando tel es válido) -->
-        {% if tel_ok %}
-        <div class="flex justify-end">
-            <button
-                onclick="saltarCliente('{{ rc_id }}', '{{ cli_id }}', 'Otro (ver observación)')"
-                class="text-xs text-gray-400 hover:text-gray-600 underline">
-                ⏭ Saltar cliente
             </button>
         </div>
         {% endif %}
 
-        <!-- Slots inline -->
-        <div id="slot-novedad-enfocado"></div>
-        <div id="slot-reagendar-enfocado"></div>
         <!-- Historial ABIERTO por defecto (solo vista enfocada); el botón lo oculta -->
         <div id="slot-historial-enfocado">
             {% if historial %}
@@ -330,6 +282,46 @@
             {% include "partials/historial.html" %}
             {% endif %}
         </div>
+        <div id="slot-reagendar-enfocado"></div>
+
+        <!-- Enlaces de consulta poco frecuente: franja, corregir datos, saltar. -->
+        <div class="flex justify-end gap-3 flex-wrap text-[11px]">
+            <button
+                onclick="abrirFormFranja('{{ rc_id }}', '{{ cli_id }}', '{{ cliente.franja_desde.strftime('%H:%M') if cliente.franja_desde else '' }}', '{{ cliente.franja_hasta.strftime('%H:%M') if cliente.franja_hasta else '' }}')"
+                class="text-gray-400 hover:text-marca underline">
+                ⏰ Registrar franja horaria preferida
+                {% if cliente.franja_desde and cliente.franja_hasta %}
+                ({{ cliente.franja_desde.strftime('%H:%M') }}-{{ cliente.franja_hasta.strftime('%H:%M') }})
+                {% endif %}
+            </button>
+            <a href="/clientes/buscador?cliente_id={{ cli_id }}&nombre={{ cliente.nombre|urlencode }}"
+               class="text-gray-400 hover:text-marca underline">
+                ✏️ Corregir datos de este cliente
+            </a>
+            {% if tel_ok %}
+            <button
+                onclick="saltarCliente('{{ rc_id }}', '{{ cli_id }}', 'Otro (ver observación)')"
+                class="text-gray-400 hover:text-gray-600 underline">
+                ⏭ Saltar cliente
+            </button>
+            {% endif %}
+        </div>
+        <div id="slot-franja-enfocado"></div>
+
+        <!-- Datos del formato nuevo de Excel: observación de campo y novedad.
+             Solo informativos, no cambian el flujo de la llamada. -->
+        {% if cliente.observacion_excel %}
+        <div class="bg-blue-50 border border-blue-200 rounded-xl px-3 py-1.5">
+            <p class="text-[10px] font-bold text-blue-800 uppercase tracking-wide mb-0.5">📋 Observación del último Excel</p>
+            <p class="text-xs text-blue-900">{{ cliente.observacion_excel }}</p>
+        </div>
+        {% endif %}
+        {% if cliente.novedad_excel %}
+        <div class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5">
+            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">📝 Novedad del Excel</p>
+            <p class="text-xs text-gray-700">{{ cliente.novedad_excel }}</p>
+        </div>
+        {% endif %}
 
     </div>
 

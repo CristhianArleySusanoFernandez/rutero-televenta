@@ -2,38 +2,42 @@
 
 {% block title %}Rutero del día — Distribuciones Santiago De Tunja{% endblock %}
 
-{% block fecha %}{{ hoy.strftime('%A %d de %B de %Y') | capitalize }}{% endblock %}
+{% block fecha %}{{ fecha_larga_es(hoy) }}{% endblock %}
 
 {% block content %}
 
-<!-- Stats Bar -->
-<div id="stats-bar">
-    {% include "partials/stats_bar.html" %}
-</div>
+<!-- Cabecera compacta: estadísticas + controles de modo, en una sola
+     franja. En modo cola es lo único que precede a la vista enfocada,
+     así que se mantiene lo más baja posible (objetivo: ~70px). -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 px-4 py-2 mb-3 flex items-center gap-4 flex-wrap">
+    <div id="stats-bar" class="flex-1 min-w-[280px]">
+        {% include "partials/stats_bar.html" %}
+    </div>
 
-<!-- Barra de modo: Iniciar / Pausar + botón volver -->
-<div id="barra-modo" class="flex items-center gap-3 mb-4 flex-wrap">
-    <button id="btn-iniciar"
-        onclick="iniciarModo()"
-        class="inline-flex items-center gap-2 bg-marca hover:bg-marca-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm transition">
-        ▶ Iniciar cola
-    </button>
-    <button id="btn-pausar"
-        onclick="pausarModo()"
-        class="hidden inline-flex items-center gap-2 bg-acento hover:opacity-90 text-marca font-bold px-5 py-2.5 rounded-xl shadow-sm transition">
-        ⏸ Pausar
-    </button>
-    <button id="btn-volver"
-        onclick="volverALista()"
-        class="hidden inline-flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-4 py-2.5 rounded-xl transition">
-        ← Volver a la lista
-    </button>
-    <span id="badge-modo" class="hidden px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-        🟢 Modo llamando
-    </span>
-    <span id="badge-telefono" class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-500 ml-auto">
-        📱 Consultando teléfono...
-    </span>
+    <!-- Barra de modo: Iniciar / Pausar + botón volver -->
+    <div id="barra-modo" class="flex items-center gap-2 flex-wrap">
+        <button id="btn-iniciar"
+            onclick="iniciarModo()"
+            class="inline-flex items-center gap-2 bg-marca hover:bg-marca-hover text-white font-bold px-4 py-1.5 rounded-lg shadow-sm transition text-sm">
+            ▶ Iniciar cola
+        </button>
+        <button id="btn-pausar"
+            onclick="pausarModo()"
+            class="hidden inline-flex items-center gap-2 bg-acento hover:opacity-90 text-marca font-bold px-4 py-1.5 rounded-lg shadow-sm transition text-sm">
+            ⏸ Pausar
+        </button>
+        <button id="btn-volver"
+            onclick="volverALista()"
+            class="hidden inline-flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-3 py-1.5 rounded-lg transition text-sm">
+            ← Volver a la lista
+        </button>
+        <span id="badge-modo" class="hidden px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            🟢 Modo llamando
+        </span>
+        <span id="badge-telefono" class="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+            📱 Consultando teléfono...
+        </span>
+    </div>
 </div>
 
 <!-- Toolbar: cargar rutero + filtros + exportar (se oculta en modo llamando) -->

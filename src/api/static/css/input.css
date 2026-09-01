@@ -24,3 +24,23 @@
 .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
 .htmx-request .htmx-indicator { opacity: 1; }
 .htmx-request.htmx-indicator { opacity: 1; }
+
+/* ────────────────────────────────────────────────────────────
+   Navegación: enlaces con área de pulsación clara, sin subrayado
+   permanente, y un estado "activo" para marcar en qué pantalla
+   está la asesora.
+   ──────────────────────────────────────────────────────────── */
+@layer components {
+    .nav-link {
+        @apply text-cian text-sm font-medium px-3 py-2 rounded-lg transition whitespace-nowrap hover:bg-white/10 hover:text-white;
+    }
+    .nav-link-activo {
+        @apply bg-white/15 text-white;
+    }
+    /* El disparador del menú "Más" es un <summary>: sin esta regla el
+       navegador le aplica su tratamiento por defecto (azul, subrayado),
+       lo que lo hace destacar en un color distinto al resto de la barra. */
+    .nav-menu-trigger {
+        @apply nav-link inline-flex items-center gap-1 cursor-pointer select-none;
+    }
+}

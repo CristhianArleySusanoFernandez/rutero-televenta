@@ -4,49 +4,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Rutero Televenta{% endblock %}</title>
-    <link rel="stylesheet" href="/static/css/tailwind.css">
+    <link rel="stylesheet" href="/static/css/tailwind.css?v=3">
     <script src="/static/js/htmx.min.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen">
 
 <!-- Navbar -->
 <nav class="bg-marca shadow-md sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
-        <a href="/" class="flex items-baseline gap-3 min-w-0 hover:opacity-90 transition">
+    <div class="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap">
+        <a href="/" class="flex items-baseline gap-3 min-w-0 hover:opacity-90 transition shrink-0">
             <span class="text-white text-2xl font-bold tracking-tight whitespace-nowrap">📋 Rutero Televenta</span>
             <span class="text-cian text-sm font-medium truncate hidden sm:inline">Distribuciones Santiago De Tunja S.A.S</span>
         </a>
-        <div class="flex items-center gap-4 flex-wrap justify-end">
-            <span class="text-white/80 text-sm font-medium whitespace-nowrap" id="fecha-hoy">
-                {% block fecha %}{% endblock %}
+
+        {% set asesor_actual = request.cookies.get('asesor') %}
+        {% if asesor_actual %}
+        {% set ruta = request.url.path %}
+        <div class="flex items-center gap-2 flex-wrap justify-end">
+            <span class="text-white/70 text-xs font-medium whitespace-nowrap mr-1 hidden md:inline">{% block fecha %}{% endblock %}</span>
+
+            <a href="/" class="nav-link {{ 'nav-link-activo' if ruta == '/' else '' }}">Inicio</a>
+            <a href="/dashboard/novedades" class="nav-link {{ 'nav-link-activo' if ruta.startswith('/dashboard') else '' }}">Dashboard</a>
+            <a href="/clientes/buscador" class="nav-link {{ 'nav-link-activo' if ruta.startswith('/clientes') else '' }}">Buscar cliente</a>
+
+            <span class="w-px h-6 bg-white/25 mx-1 hidden sm:block" aria-hidden="true"></span>
+
+            <!-- Identidad de sesión: siempre visible, no depende de abrir el menú. -->
+            <span class="text-white text-sm font-semibold bg-white/10 border border-white/20 rounded-lg px-3 py-2 whitespace-nowrap">
+                👤 {{ asesor_actual }}
             </span>
-            {% set asesor_actual = request.cookies.get('asesor') %}
-            {% if asesor_actual %}
-            <div class="flex items-center gap-3 flex-wrap justify-end">
-                <span class="text-white text-sm font-medium whitespace-nowrap">👤 {{ asesor_actual }}</span>
-                <a href="/" class="text-cian text-xs underline hover:text-white whitespace-nowrap">
-                    🏠 Inicio
-                </a>
-                <a href="/dashboard/novedades" class="text-cian text-xs underline hover:text-white whitespace-nowrap">
-                    📊 Dashboard
-                </a>
-                <a href="/clientes/buscador" class="text-cian text-xs underline hover:text-white whitespace-nowrap">
-                    🔍 Buscar cliente
-                </a>
-                <a href="/asesor/telefono" class="text-cian text-xs underline hover:text-white whitespace-nowrap">
-                    Mi teléfono
-                </a>
-                <a href="/asesor/codigo" class="text-cian text-xs underline hover:text-white whitespace-nowrap">
-                    Mi código de asesora
-                </a>
-                <form method="post" action="/asesor/salir">
-                    <button type="submit" class="text-cian text-xs underline hover:text-white whitespace-nowrap">
-                        Cambiar asesor
-                    </button>
-                </form>
-            </div>
-            {% endif %}
+
+            <!-- Menú secundario (uso ocasional): <details> nativo, sin JS
+                 propio — no interfiere con ninguna función del modo cola.
+                 El disparador es un botón etiquetado, no un ícono suelto. -->
+            <details class="relative">
+                <summary class="nav-menu-trigger">
+                    Más <span aria-hidden="true">▾</span>
+                </summary>
+                <div class="absolute right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 py-1 min-w-[200px] text-sm z-50">
+                    <a href="/asesor/telefono" class="block px-4 py-2 text-marca hover:bg-marca-suave whitespace-nowrap">📱 Mi teléfono</a>
+                    <a href="/asesor/codigo" class="block px-4 py-2 text-marca hover:bg-marca-suave whitespace-nowrap">🔢 Mi código de asesora</a>
+                    <form method="post" action="/asesor/salir">
+                        <button type="submit" class="w-full text-left px-4 py-2 text-marca hover:bg-marca-suave whitespace-nowrap">
+                            🔁 Cambiar asesor
+                        </button>
+                    </form>
+                </div>
+            </details>
         </div>
+        {% else %}
+        <span class="text-white/80 text-sm font-medium whitespace-nowrap" id="fecha-hoy">
+            {{ self.fecha() }}
+        </span>
+        {% endif %}
     </div>
 </nav>
 

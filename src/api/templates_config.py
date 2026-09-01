@@ -3,6 +3,7 @@ from urllib.parse import quote
 from fastapi.templating import Jinja2Templates
 
 from src.domain.servicios.dia_visita import parsear_dia_visita
+from src.domain.servicios.fecha_colombia import fecha_larga_es
 from src.domain.servicios.telefono_colombia import normalizar_telefono_whatsapp
 from src.paths import base_dir
 
@@ -45,3 +46,4 @@ templates.env.globals["telefono_valido"] = _telefono_valido
 templates.env.globals["dia_visita_invalido"] = _dia_visita_invalido
 templates.env.globals["normalizar_telefono_whatsapp"] = normalizar_telefono_whatsapp
 templates.env.globals["link_whatsapp_no_contesto"] = _link_whatsapp_no_contesto
+templates.env.globals["fecha_larga_es"] = fecha_larga_es

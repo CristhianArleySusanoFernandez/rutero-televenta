@@ -1,33 +1,33 @@
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-3">
-        <div class="text-center">
-            <p class="text-2xl font-bold text-marca">{{ stats.total }}</p>
-            <p class="text-xs text-gray-500 uppercase tracking-wide">Total</p>
-        </div>
-        <div class="text-center">
-            <p class="text-2xl font-bold text-green-600">{{ stats.contesto }}</p>
-            <p class="text-xs text-gray-500 uppercase tracking-wide">Contestaron</p>
-        </div>
-        <div class="text-center">
-            <p class="text-2xl font-bold text-red-500">{{ stats.no_contesto }}</p>
-            <p class="text-xs text-gray-500 uppercase tracking-wide">No contestaron</p>
-        </div>
-        <div class="text-center">
-            <p class="text-2xl font-bold text-orange-500">{{ stats.novedad }}</p>
-            <p class="text-xs text-gray-500 uppercase tracking-wide">Novedades</p>
-        </div>
-        <div class="text-center">
-            <p class="text-2xl font-bold text-yellow-600">{{ stats.pendiente }}</p>
-            <p class="text-xs text-gray-500 uppercase tracking-wide">Pendientes</p>
-        </div>
+<div class="flex items-center gap-4 flex-wrap text-sm">
+    <div class="flex items-baseline gap-1.5">
+        <span class="text-lg font-bold text-marca">{{ stats.total }}</span>
+        <span class="text-[10px] text-gray-400 uppercase tracking-wide">Total</span>
+    </div>
+    <div class="flex items-baseline gap-1.5">
+        <span class="text-lg font-bold text-green-600">{{ stats.contesto }}</span>
+        <span class="text-[10px] text-gray-400 uppercase tracking-wide">Contestaron</span>
+    </div>
+    <div class="flex items-baseline gap-1.5">
+        <span class="text-lg font-bold text-red-500">{{ stats.no_contesto }}</span>
+        <span class="text-[10px] text-gray-400 uppercase tracking-wide">No contestaron</span>
+    </div>
+    <div class="flex items-baseline gap-1.5">
+        <span class="text-lg font-bold text-orange-500">{{ stats.novedad }}</span>
+        <span class="text-[10px] text-gray-400 uppercase tracking-wide">Novedades</span>
+    </div>
+    <div class="flex items-baseline gap-1.5">
+        <span class="text-lg font-bold text-yellow-600">{{ stats.pendiente }}</span>
+        <span class="text-[10px] text-gray-400 uppercase tracking-wide">Pendientes</span>
     </div>
 
-    <!-- Barra de progreso -->
-    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-        <div
-            class="h-3 rounded-full transition-all duration-500 {% if stats.progreso == 100 %}bg-green-500{% elif stats.progreso >= 50 %}bg-cian{% else %}bg-marca{% endif %}"
-            style="width: {{ stats.progreso }}%"
-        ></div>
+    <!-- Barra de progreso: fina, integrada en la misma línea -->
+    <div class="flex items-center gap-2 flex-1 min-w-[100px]">
+        <div class="flex-1 bg-gray-200 rounded-full h-1.5 overflow-hidden">
+            <div
+                class="h-1.5 rounded-full transition-all duration-500 {% if stats.progreso == 100 %}bg-green-500{% elif stats.progreso >= 50 %}bg-cian{% else %}bg-marca{% endif %}"
+                style="width: {{ stats.progreso }}%"
+            ></div>
+        </div>
+        <span class="text-[10px] text-gray-400 whitespace-nowrap">{{ stats.progreso }}%</span>
     </div>
-    <p class="text-right text-xs text-gray-400 mt-1">{{ stats.progreso }}% completado</p>
 </div>

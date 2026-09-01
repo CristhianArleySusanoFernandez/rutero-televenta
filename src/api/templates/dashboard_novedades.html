@@ -2,7 +2,7 @@
 
 {% block title %}Dashboard de novedades — Rutero Televenta{% endblock %}
 
-{% block fecha %}{{ fecha.strftime('%A %d de %B de %Y') | capitalize }}{% endblock %}
+{% block fecha %}{{ fecha_larga_es(fecha) }}{% endblock %}
 
 {% block content %}
 
